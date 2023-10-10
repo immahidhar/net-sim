@@ -4,6 +4,7 @@
 
 import signal
 import sys
+import threading
 
 from server import Server
 
@@ -15,13 +16,18 @@ class Bridge(Server):
 
     def __init__(self, host, port):
         super().__init__(host, port)
+        serverThread = None
 
     def start(self):
         """
         Start bridge
         :return:
         """
+        # start server
         super().start()
+        serverThread = threading.Thread(target=super().serve(), args=())
+        serverThread.start()
+        serverThread.join()
 
     def shutdown(self):
         super().close()
@@ -31,8 +37,7 @@ def main():
     """
     Entry point
     """
-    bridge = Bridge("127.0.0.1", 0)
-    bridge.start()
+    bridge = Bridge('', 0)
 
     def sigHandler(sig, frame):
         """
@@ -44,10 +49,10 @@ def main():
 
     # Handle SIGINT
     signal.signal(signal.SIGINT, sigHandler)
+    print("Signal Handler registered")
 
-    print("Server started:", bridge.servSock.getsockname())
-
-    bridge.shutdown()
+    # start bridge
+    bridge.start()
 
 
 if __name__ == "__main__":
