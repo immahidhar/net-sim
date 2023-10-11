@@ -48,7 +48,8 @@ class Server:
             try: # select()
                 inputReady, outputReady, exceptReady = select.select([self.servSock, sys.stdin], [], [], SELECT_TIMEOUT)
             except select.error as e:
-                print("error on select", e)
+                if not self.exitFlag:
+                    print("error on select", e)
                 return
             for sock in inputReady:
                 if sock == self.servSock:
@@ -83,7 +84,7 @@ class Server:
             return
         else:
             self.numClients = self.numClients + 1
-            clientReadThread = threading.Thread(target=self.readConnection, args=(clientSock,))
+            clientReadThread = threading.Thread(target=Server.readConnection, args=(self, clientSock,))
             self.threads.append(clientReadThread)
             clientReadThread.start()
             self.sendData(clientSock, "accept")

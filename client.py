@@ -38,9 +38,10 @@ class Client:
         """
         while not self.exitFlag:
             try: # select()
-                inputReady, outputReady, exceptReady = select.select([self.cliSock, sys.stdin], [], [], SELECT_TIMEOUT)
+                inputReady, outputReady, exceptReady = select.select([self.cliSock], [], [], SELECT_TIMEOUT)
             except select.error as e:
-                print("error on select", e)
+                if not self.exitFlag:
+                    print("error on select", e)
                 return
             for sock in inputReady:
                 if sock == self.cliSock:

@@ -29,11 +29,11 @@ class Bridge(Server):
         Start bridge
         :return:
         """
-        # start server
         super().start()
         self.saveBridgeAddr()
-        self.serverThread = threading.Thread(target=super().serve(), args=())
+        self.serverThread = threading.Thread(target=Server.serve, args=(self,))
         self.threads.append(self.serverThread)
+        print("bridge started")
         self.serverThread.start()
         self.serverThread.join()
 
