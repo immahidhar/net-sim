@@ -29,7 +29,7 @@ class Client:
         print("starting connection to",  self.server_addr)
         self.cliSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.cliSock.connect(self.server_addr)
-        print("connected to ", self.server_addr, " on ", self.cliSock.getsockname())
+        print("connected to", self.server_addr, "on", self.cliSock.getsockname())
 
     def run(self):
         """

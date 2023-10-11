@@ -13,8 +13,12 @@ class Station:
     Station
     """
 
-    def __init__(self, lanName):
-        self.lanName = lanName
+    def __init__(self, stationType):
+        self.name = ""
+        self.ip = ""
+        self.mac = ""
+        self.lanName = ""
+        self.stationType = stationType
         self.addrFileName = "." + self.lanName + '.addr'
         self.portFileName = "." + self.lanName + '.port'
         self.bridgePort = None
@@ -39,13 +43,22 @@ class Station:
             print("no bridge with lan name", self.lanName, "found")
             sys.exit(1)
 
+class MultiStation:
+    """
+    MultiStation
+    """
+    def __int__(self, numStations, stationType):
+        self.stationType = stationType
+        self.numStations = numStations
+        self.stations = []
+
 def main():
     """
     Entry point
     """
 
     lanName = sys.argv[1]
-    station = Station(lanName)
+    station = Station()
 
     client = Client(station.bridgeHost, station.bridgePort)
 

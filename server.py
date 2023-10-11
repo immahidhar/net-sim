@@ -50,7 +50,6 @@ class Server:
             except select.error as e:
                 print("error on select", e)
                 return
-
             for sock in inputReady:
                 if sock == self.servSock:
                     # handle the server socket
