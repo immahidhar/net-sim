@@ -30,9 +30,9 @@ class Server:
         self.servSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.servSock.bind((self.HOST, self.PORT))
         self.servSock.listen()
-        print(f"server started: name\"{socket.gethostname()}\" "
-              f"ip\"{socket.gethostbyname_ex(socket.gethostname())[-1]}\" "
-              f"port\"{ self.servSock.getsockname()[1]}\"")
+        print("server started: name\"", socket.gethostname(), "\"", end =" ")
+        print("ip\"", socket.gethostbyname_ex(socket.gethostname())[-1], "\"", end =" ")
+        print("port\"", self.servSock.getsockname()[1], "\"")
         return self.servSock
 
     def serve(self):
@@ -63,7 +63,7 @@ class Server:
         """
         # accept()
         clientSock, clientAddr = self.servSock.accept()
-        print(f"new connection: {clientSock} - {clientAddr}")
+        print("new connection: ", clientSock , "-", clientAddr)
         self.clientSocks.append(clientSock)
         readThread = threading.Thread(target=self.readConnection, args=(clientSock,))
         readThread.start()
@@ -80,14 +80,14 @@ class Server:
             except OSError as e:
                 if self.exitFlag:
                     return
-                print(f"recv error {e}")
+                print("recv error ", e)
                 self.clientSocks.remove(cliSock)
                 cliSock.close()
                 return
             if not data:
                 if self.exitFlag:
                     return
-                print(f'client closed connection{cliSock}')
+                print("client closed connection", cliSock)
                 self.clientSocks.remove(cliSock)
                 cliSock.close()
                 return
@@ -101,7 +101,7 @@ class Server:
         :param data:
         :return:
         """
-        print(f"{cliSock.getsockname()} : {data}")
+        print(cliSock.getsockname(), " : ", data)
 
     def close(self):
         """
@@ -109,7 +109,7 @@ class Server:
         """
         self.exitFlag = True
         for sock in self.clientSocks:
-            print(f"closing client socket {sock.getsockname()}")
+            print("closing client socket",  sock.getsockname())
             sock.close()
         print("closing server socket", self.servSock)
         self.servSock.close()

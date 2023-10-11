@@ -25,11 +25,11 @@ class Client:
         connect to server
         :return:
         """
-        print(f"starting connection to {self.server_addr}")
+        print("starting connection to",  self.server_addr)
         self.cliSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # clearself.cliSock.setblocking(False)
         self.cliSock.connect(self.server_addr)
-        print(f"connected to {self.server_addr} on {self.cliSock.getsockname()}")
+        print("connected to ", self.server_addr, " on ", self.cliSock.getsockname())
 
     def run(self):
         """
@@ -41,7 +41,7 @@ class Client:
             if not data:
                 if self.exitFlag:
                     return
-                print(f'server closed connection {self.server_addr}')
+                print("server closed connection",  self.server_addr)
                 return
             else:
                 self.processData(self.cliSock, data)
@@ -53,7 +53,7 @@ class Client:
         :param data:
         :return:
         """
-        print(f"{sock.getsockname()}:{data}")
+        print(sock.getsockname(), " : ", data)
 
 
     def close(self):
