@@ -43,13 +43,13 @@ def main():
         """
         Signal Handler to catch ctrl+c
         """
-        print("Ctrl+C detected. Bridge shutting down!")
+        print(" ctrl+c detected- bridge shutting down!")
         bridge.shutdown()
         sys.exit(0)
 
     # Handle SIGINT
     signal.signal(signal.SIGINT, sigHandler)
-    print("Signal Handler registered")
+    print("signal Handler registered")
 
     # start bridge
     bridge.start()
