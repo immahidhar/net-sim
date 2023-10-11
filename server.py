@@ -46,7 +46,7 @@ class Server:
                 inputReady, outputReady, exceptReady = select.select(inSocks, [], [])
             except select.error as e:
                 print("error on select", e)
-                break
+                return
 
             for sock in inputReady:
                 if sock == self.servSock:
@@ -65,15 +65,15 @@ class Server:
         clientSock, clientAddr = self.servSock.accept()
         print("new connection: ", clientSock)
         self.clientSocks.append(clientSock)
-        readThread = threading.Thread(target=self.readConnection, args=(clientSock,))
-        readThread.start()
+        clientReadThread = threading.Thread(target=self.readConnection, args=(clientSock,))
+        clientReadThread.start()
 
     def readConnection(self, cliSock: socket):
         """
         read data from connections
         :return:
         """
-        while True:
+        while not self.exitFlag:
             # read from client socket
             try:
                 data = cliSock.recv(BUFFER_LEN)
