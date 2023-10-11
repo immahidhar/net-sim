@@ -41,7 +41,7 @@ class Bridge(Server):
     def saveBridgeAddr(self):
         with open(self.addrFileName, 'w') as addr:
             try:
-                addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][1])
+                addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][0])
             except:
                 print("error writing bridge ip address")
                 self.shutdown()

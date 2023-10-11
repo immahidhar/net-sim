@@ -31,7 +31,7 @@ class Server:
         self.servSock.bind((self.HOST, self.PORT))
         self.servSock.listen()
         print("server started: name = \"", socket.gethostname(), "\"", end =" ")
-        print("ip = \"", socket.gethostbyname_ex(socket.gethostname())[-1][1], "\"", end =" ")
+        print("ip = \"", socket.gethostbyname_ex(socket.gethostname())[-1][0], "\"", end =" ")
         print("port = \"", self.servSock.getsockname()[1], "\"")
         return self.servSock
 
