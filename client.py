@@ -39,7 +39,7 @@ class Client:
         print("client ready to read server data")
         while not self.exitFlag:
             try: # select()
-                inputReady, outputReady, exceptReady = select.select([self.cliSock], [], [], SELECT_TIMEOUT)
+                inputReady, outputReady, exceptReady = select.select([self.cliSock, sys.stdin], [], [], SELECT_TIMEOUT)
             except select.error as e:
                 print("error on select", e)
                 return
@@ -54,27 +54,13 @@ class Client:
                         return
                     else:
                         self.processData(self.cliSock, data)
+                elif sock == sys.stdin:
+                    # user input
+                    data = sys.stdin.readline()
+                    self.send(data)
                 else:
                     print("Huh?")
                     pass
-
-    def runInput(self):
-        """
-        run input - read user input and send to server
-        """
-        print("client ready to take user input")
-        while not self.exitFlag:
-            try:  # select()
-                inputReady, outputReady, exceptReady = select.select([sys.stdin], [], [], SELECT_TIMEOUT)
-            except select.error as e:
-                print("error on select", e)
-                break
-            for sock in inputReady:
-                if sock == sys.stdin:
-                    # user input
-                    self.send(sys.stdin.readline())
-        print("client done taking user input")
-
 
     def processData(self, sock, data):
         """
@@ -83,14 +69,13 @@ class Client:
         :param data:
         :return:
         """
-        print(sock.getsockname(), " : ", data)
+        print(sock.getpeername(), " : ", str(data, 'UTF-8').strip())
 
-    def send(self, data):
+    def send(self, data: str):
         """
         send data to server
         """
-        print("sending data to server:", data)
-        self.cliSock.send(data)
+        self.cliSock.send(bytes(data, 'utf-8'))
 
 
     def close(self, shutdownFlag):

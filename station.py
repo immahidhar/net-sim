@@ -50,12 +50,9 @@ def main():
     # Handle SIGINT
     signal.signal(signal.SIGINT, sigHandler)
     client.connect()
-    clientReadThread = threading.Thread(target=client.run(), args=())
-    clientSendThread = threading.Thread(target=client.runInput(), args=())
-    clientReadThread.start()
-    clientSendThread.start()
-    clientReadThread.join()
-    clientSendThread.join()
+    clientThread = threading.Thread(target=client.run(), args=())
+    clientThread.start()
+    clientThread.join()
 
 
 if __name__ == "__main__":

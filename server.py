@@ -114,7 +114,7 @@ class Server:
         :param data:
         :return:
         """
-        print(cliSock.getsockname(), " : ", data)
+        print(cliSock.getpeername(), " : ", str(data, 'UTF-8').strip())
 
     def close(self):
         """
