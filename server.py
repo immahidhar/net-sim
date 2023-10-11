@@ -115,10 +115,10 @@ class Server:
         self.servSock.close()
 
     def __str__(self):
-        return f'{self.servSock.getsockname()}'
+        return self.servSock.getsockname()
 
     def __repr__(self):
-        return f'{self.servSock.getsockname()}'
+        return self.servSock.getsockname()
 
 
 def main():
