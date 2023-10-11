@@ -43,9 +43,12 @@ def main():
     """
     Entry point
     """
+
     lanName = sys.argv[1]
     station = Station(lanName)
+
     client = Client(station.bridgeHost, station.bridgePort)
+
     def sigHandler(sig, frame):
         """
         Signal Handler to catch ctrl+c
@@ -55,6 +58,7 @@ def main():
         sys.exit(0)
     # Handle SIGINT
     signal.signal(signal.SIGINT, sigHandler)
+
     client.connect()
     clientThread = threading.Thread(target=client.run(), args=())
     clientThread.start()

@@ -60,7 +60,10 @@ class Bridge(Server):
                 print("error writing bridge port")
                 self.shutdown()
 
-def bridgeLanExists(bridge: Bridge, lanName):
+def bridgeLanExists(bridge: Bridge):
+    """
+    check if bridge address files with lanName already exists
+    """
     try:
         with open(bridge.addrFileName, 'r') as addr:
             bridgeHost = addr.readline()
@@ -86,7 +89,7 @@ def main():
     bridge = Bridge('', 0, lanName, numPorts)
 
     # validate lanName
-    if bridgeLanExists(bridge, lanName):
+    if bridgeLanExists(bridge):
         print("bridge with lan name", lanName, "already exists, provide another lan name")
         sys.exit(1)
 

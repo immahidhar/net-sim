@@ -46,7 +46,7 @@ class Server:
         """
         while not self.exitFlag:
             try: # select()
-                inputReady, outputReady, exceptReady = select.select([self.servSock], [], [], SELECT_TIMEOUT)
+                inputReady, outputReady, exceptReady = select.select([self.servSock, sys.stdin], [], [], SELECT_TIMEOUT)
             except select.error as e:
                 print("error on select", e)
                 return
@@ -55,6 +55,10 @@ class Server:
                 if sock == self.servSock:
                     # handle the server socket
                     self.acceptConnections()
+                elif sock == sys.stdin:
+                    # user input
+                    data = sys.stdin.readline()
+                    self.broadcastData(None, data, False)
                 else:
                     print("Huh?")
                     pass
@@ -73,6 +77,7 @@ class Server:
             # limit reached
             print("server limit already reached - rejecting connection")
             print("closing client socket",  clientSock.getpeername())
+            self.sendData(clientSock, "reject")
             self.clientSocks.remove(clientSock)
             clientSock.shutdown(socket.SHUT_RDWR)
             clientSock.close()
@@ -82,6 +87,7 @@ class Server:
             clientReadThread = threading.Thread(target=self.readConnection, args=(clientSock,))
             self.threads.append(clientReadThread)
             clientReadThread.start()
+            self.sendData(clientSock, "accept")
             return
 
     def readConnection(self, cliSock):
@@ -107,6 +113,7 @@ class Server:
                         print("recv error ", e)
                         self.clientSocks.remove(cliSock)
                         cliSock.close()
+                        self.numClients = self.numClients - 1
                         return
                     if not data:
                         if self.exitFlag:
@@ -114,6 +121,7 @@ class Server:
                         print("client closed connection", cliSock)
                         self.clientSocks.remove(cliSock)
                         cliSock.close()
+                        self.numClients = self.numClients - 1
                         return
                     else:
                         self.processData(cliSock, data)
@@ -130,6 +138,25 @@ class Server:
         :return:
         """
         print(cliSock.getpeername(), " : ", str(data, 'UTF-8').strip())
+
+    def sendData(self, cliSock, data):
+        """
+        send data on the client socket
+        """
+        cliSock.send(bytes(data, 'utf-8'))
+
+    def broadcastData(self, cliSock, data, reFlag):
+        """
+        broadcast data to clients
+        """
+        for sock in self.clientSocks:
+            if cliSock is not None and sock == cliSock:
+                if reFlag:
+                    self.sendData(sock, data)
+                else:
+                    pass
+            else:
+                self.sendData(sock, data)
 
     def close(self):
         """
