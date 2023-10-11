@@ -30,9 +30,9 @@ class Server:
         self.servSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.servSock.bind((self.HOST, self.PORT))
         self.servSock.listen()
-        print("server started: name\"", socket.gethostname(), "\"", end =" ")
-        print("ip\"", socket.gethostbyname_ex(socket.gethostname())[-1], "\"", end =" ")
-        print("port\"", self.servSock.getsockname()[1], "\"")
+        print("server started: name = \"", socket.gethostname(), "\"", end =" ")
+        print("ip = \"", socket.gethostbyname_ex(socket.gethostname())[-1][1], "\"", end =" ")
+        print("port = \"", self.servSock.getsockname()[1], "\"")
         return self.servSock
 
     def serve(self):
@@ -63,7 +63,7 @@ class Server:
         """
         # accept()
         clientSock, clientAddr = self.servSock.accept()
-        print("new connection: ", clientSock , "-", clientAddr)
+        print("new connection: ", clientSock)
         self.clientSocks.append(clientSock)
         readThread = threading.Thread(target=self.readConnection, args=(clientSock,))
         readThread.start()

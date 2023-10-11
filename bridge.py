@@ -3,6 +3,7 @@
 # Bridge
 
 import signal
+import socket
 import sys
 import threading
 
@@ -14,9 +15,12 @@ class Bridge(Server):
     Bridge
     """
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, lanName):
         super().__init__(host, port)
-        serverThread = None
+        self.lanName = lanName
+        self.addrFileName = "." + self.lanName + '.addr'
+        self.portFileName = "." + self.lanName + '.port'
+        self.serverThread = None
 
     def start(self):
         """
@@ -25,19 +29,36 @@ class Bridge(Server):
         """
         # start server
         super().start()
-        serverThread = threading.Thread(target=super().serve(), args=())
-        serverThread.start()
-        serverThread.join()
+        self.saveBridgeAddr()
+        self.serverThread = threading.Thread(target=super().serve(), args=())
+        self.serverThread.start()
+        self.serverThread.join()
 
     def shutdown(self):
         super().close()
+        sys.exit(0)
+
+    def saveBridgeAddr(self):
+        with open(self.addrFileName, 'w') as addr:
+            try:
+                addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][1])
+            except:
+                print("error writing bridge ip address")
+                self.shutdown()
+        with open(self.portFileName, 'w') as port:
+            try:
+                port.write(str(self.servSock.getsockname()[1]))
+            except:
+                print("error writing bridge port")
+                self.shutdown()
 
 
 def main():
     """
     Entry point
     """
-    bridge = Bridge('', 0)
+    lanName = sys.argv[1]
+    bridge = Bridge('', 0, lanName)
 
     def sigHandler(sig, frame):
         """
@@ -45,11 +66,9 @@ def main():
         """
         print(" ctrl+c detected- bridge shutting down!")
         bridge.shutdown()
-        sys.exit(0)
 
     # Handle SIGINT
     signal.signal(signal.SIGINT, sigHandler)
-    print("signal Handler registered")
 
     # start bridge
     bridge.start()
