@@ -7,7 +7,7 @@ import socket
 import select
 import threading
 
-from util import BUFFER_LEN
+from util import BUFFER_LEN, SELECT_TIMEOUT
 
 
 class Server:
@@ -19,6 +19,7 @@ class Server:
         self.servSock = None
         self.HOST = host
         self.PORT = port
+        self.threads = []
         self.clientSocks = []
         self.exitFlag = False
 
@@ -31,7 +32,8 @@ class Server:
         self.servSock.bind((self.HOST, self.PORT))
         self.servSock.listen()
         print("server started: name = \"", socket.gethostname(), "\"", end =" ")
-        print("ip = \"", socket.gethostbyname_ex(socket.gethostname())[-1][0], "\"", end =" ")
+        # print("ip = \"", socket.gethostbyname_ex(socket.gethostname())[-1][0], "\"", end =" ")
+        print("ip = \"", (self.servSock.getsockname())[0], "\"", end=" ")
         print("port = \"", self.servSock.getsockname()[1], "\"")
         return self.servSock
 
@@ -40,10 +42,10 @@ class Server:
         server connections
         :return:
         """
-        inSocks = [self.servSock, sys.stdin]
-        while True:
+        inSocks = [self.servSock]
+        while not self.exitFlag:
             try: # select()
-                inputReady, outputReady, exceptReady = select.select(inSocks, [], [])
+                inputReady, outputReady, exceptReady = select.select(inSocks, [], [], SELECT_TIMEOUT)
             except select.error as e:
                 print("error on select", e)
                 return
@@ -52,8 +54,8 @@ class Server:
                 if sock == self.servSock:
                     # handle the server socket
                     self.acceptConnections()
-                elif sock == sys.stdin:
-                    # handle standard input
+                else:
+                    print("Huh?")
                     pass
 
     def acceptConnections(self):
@@ -66,33 +68,46 @@ class Server:
         print("new connection: ", clientSock)
         self.clientSocks.append(clientSock)
         clientReadThread = threading.Thread(target=self.readConnection, args=(clientSock,))
+        self.threads.append(clientReadThread)
         clientReadThread.start()
 
-    def readConnection(self, cliSock: socket):
+    def readConnection(self, cliSock):
         """
         read data from connections
         :return:
         """
+        inSocks = [cliSock]
         while not self.exitFlag:
             # read from client socket
-            try:
-                data = cliSock.recv(BUFFER_LEN)
-            except OSError as e:
-                if self.exitFlag:
-                    return
-                print("recv error ", e)
-                self.clientSocks.remove(cliSock)
-                cliSock.close()
+            try: # select()
+                inputReady, outputReady, exceptReady = select.select(inSocks, [], [], SELECT_TIMEOUT)
+            except select.error as e:
+                print("error on select", e)
                 return
-            if not data:
-                if self.exitFlag:
-                    return
-                print("client closed connection", cliSock)
-                self.clientSocks.remove(cliSock)
-                cliSock.close()
-                return
-            else:
-                self.processData(cliSock, data)
+            for sock in inputReady:
+                if sock == cliSock:
+                    try: # recv()
+                        data = cliSock.recv(BUFFER_LEN)
+                    except OSError as e:
+                        if self.exitFlag:
+                            return
+                        print("recv error ", e)
+                        self.clientSocks.remove(cliSock)
+                        cliSock.close()
+                        return
+                    if not data:
+                        if self.exitFlag:
+                            return
+                        print("client closed connection", cliSock)
+                        self.clientSocks.remove(cliSock)
+                        cliSock.close()
+                        return
+                    else:
+                        self.processData(cliSock, data)
+                else:
+                    print("Huh?")
+                    pass
+
 
     def processData(self, cliSock, data):
         """
@@ -110,6 +125,7 @@ class Server:
         self.exitFlag = True
         for sock in self.clientSocks:
             print("closing client socket",  sock.getsockname())
+            sock.shutdown(socket.SHUT_RDWR)
             sock.close()
         print("closing server socket", self.servSock)
         self.servSock.close()

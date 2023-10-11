@@ -20,6 +20,7 @@ class Bridge(Server):
         self.lanName = lanName
         self.addrFileName = "." + self.lanName + '.addr'
         self.portFileName = "." + self.lanName + '.port'
+        self.threads = []
         self.serverThread = None
 
     def start(self):
@@ -31,6 +32,7 @@ class Bridge(Server):
         super().start()
         self.saveBridgeAddr()
         self.serverThread = threading.Thread(target=super().serve(), args=())
+        self.threads.append(self.serverThread)
         self.serverThread.start()
         self.serverThread.join()
 
@@ -41,7 +43,8 @@ class Bridge(Server):
     def saveBridgeAddr(self):
         with open(self.addrFileName, 'w') as addr:
             try:
-                addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][0])
+                # addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][0])
+                addr.write((self.servSock.getsockname())[0])
             except:
                 print("error writing bridge ip address")
                 self.shutdown()

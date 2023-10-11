@@ -19,7 +19,6 @@ class Client:
         self.PORT = port
         self.server_addr = (self.HOST, self.PORT)
         self.cliSock = None
-        self.servSocks = []
         self.exitFlag = False
 
     def connect(self):
@@ -89,7 +88,14 @@ class Client:
         """
         self.exitFlag = True
         print("closing client socket", self.cliSock)
+        self.cliSock.shutdown(socket.SHUT_RDWR)
         self.cliSock.close()
+
+    def __str__(self):
+        return self.cliSock.getsockname()
+
+    def __repr__(self):
+        return self.cliSock.getsockname()
 
 
 def main():
