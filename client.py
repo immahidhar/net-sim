@@ -6,7 +6,7 @@ import sys
 import socket
 import select
 
-from util import BUFFER_LEN
+from util import BUFFER_LEN, SELECT_TIMEOUT
 
 
 class Client:
@@ -37,24 +37,35 @@ class Client:
         :return:
         """
         print("client ready to read server data")
-        while True:
-            data = self.cliSock.recv(BUFFER_LEN)
-            if not data:
-                if self.exitFlag:
-                    return
-                print("server closed connection",  self.server_addr)
+        while not self.exitFlag:
+            try: # select()
+                inputReady, outputReady, exceptReady = select.select([self.cliSock], [], [], SELECT_TIMEOUT)
+            except select.error as e:
+                print("error on select", e)
                 return
-            else:
-                self.processData(self.cliSock, data)
+            for sock in inputReady:
+                if sock == self.cliSock:
+                    data = self.cliSock.recv(BUFFER_LEN)
+                    if not data:
+                        if self.exitFlag:
+                            return
+                        print("server closed connection",  self.server_addr)
+                        self.close(False)
+                        return
+                    else:
+                        self.processData(self.cliSock, data)
+                else:
+                    print("Huh?")
+                    pass
 
     def runInput(self):
         """
         run input - read user input and send to server
         """
         print("client ready to take user input")
-        while True:
+        while not self.exitFlag:
             try:  # select()
-                inputReady, outputReady, exceptReady = select.select([sys.stdin], [], [])
+                inputReady, outputReady, exceptReady = select.select([sys.stdin], [], [], SELECT_TIMEOUT)
             except select.error as e:
                 print("error on select", e)
                 break
@@ -62,6 +73,7 @@ class Client:
                 if sock == sys.stdin:
                     # user input
                     self.send(sys.stdin.readline())
+        print("client done taking user input")
 
 
     def processData(self, sock, data):
@@ -81,14 +93,15 @@ class Client:
         self.cliSock.send(data)
 
 
-    def close(self):
+    def close(self, shutdownFlag):
         """
         close sockets
         :return:
         """
         self.exitFlag = True
         print("closing client socket", self.cliSock)
-        self.cliSock.shutdown(socket.SHUT_RDWR)
+        if shutdownFlag:
+            self.cliSock.shutdown(socket.SHUT_RDWR)
         self.cliSock.close()
 
     def __str__(self):

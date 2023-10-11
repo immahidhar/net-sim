@@ -42,10 +42,9 @@ class Server:
         server connections
         :return:
         """
-        inSocks = [self.servSock]
         while not self.exitFlag:
             try: # select()
-                inputReady, outputReady, exceptReady = select.select(inSocks, [], [], SELECT_TIMEOUT)
+                inputReady, outputReady, exceptReady = select.select([self.servSock], [], [], SELECT_TIMEOUT)
             except select.error as e:
                 print("error on select", e)
                 return
@@ -76,11 +75,10 @@ class Server:
         read data from connections
         :return:
         """
-        inSocks = [cliSock]
         while not self.exitFlag:
             # read from client socket
             try: # select()
-                inputReady, outputReady, exceptReady = select.select(inSocks, [], [], SELECT_TIMEOUT)
+                inputReady, outputReady, exceptReady = select.select([cliSock], [], [], SELECT_TIMEOUT)
             except select.error as e:
                 print("error on select", e)
                 return

@@ -45,7 +45,7 @@ def main():
         Signal Handler to catch ctrl+c
         """
         print(" ctrl+c detected- station shutting down!")
-        client.close()
+        client.close(True)
         sys.exit(0)
     # Handle SIGINT
     signal.signal(signal.SIGINT, sigHandler)
@@ -53,7 +53,6 @@ def main():
     clientReadThread = threading.Thread(target=client.run(), args=())
     clientSendThread = threading.Thread(target=client.runInput(), args=())
     clientReadThread.start()
-    client.send("hi")
     clientSendThread.start()
     clientReadThread.join()
     clientSendThread.join()
