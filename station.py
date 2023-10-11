@@ -22,16 +22,22 @@ class Station:
         self.getBridgeAddr()
 
     def getBridgeAddr(self):
-        with open(self.addrFileName, 'r') as addr:
-            try:
-                self.bridgeHost = addr.readline()
-            except:
-                print("error writing bridge ip address")
-        with open(self.portFileName, 'r') as port:
-            try:
-                self.bridgePort = int(port.readline())
-            except:
-                print("error writing bridge port")
+        try:
+            with open(self.addrFileName, 'r') as addr:
+                try:
+                    self.bridgeHost = addr.readline()
+                except:
+                    print("error reading bridge ip address")
+                    sys.exit(1)
+            with open(self.portFileName, 'r') as port:
+                try:
+                    self.bridgePort = int(port.readline())
+                except:
+                    print("error reading bridge port")
+                    sys.exit(1)
+        except FileNotFoundError:
+            print("no bridge with lan name", self.lanName, "found")
+            sys.exit(1)
 
 def main():
     """

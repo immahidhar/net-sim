@@ -1,5 +1,5 @@
 # Names: Sai Jyothi Attuluri, Sai Nikhil Gummadavelli
-
+import os
 # Bridge
 
 import signal
@@ -15,9 +15,10 @@ class Bridge(Server):
     Bridge
     """
 
-    def __init__(self, host, port, lanName):
-        super().__init__(host, port)
+    def __init__(self, host, port, lanName, numPorts):
+        super().__init__(host, port, numPorts)
         self.lanName = lanName
+        self.numPorts = numPorts
         self.addrFileName = "." + self.lanName + '.addr'
         self.portFileName = "." + self.lanName + '.port'
         self.threads = []
@@ -37,6 +38,10 @@ class Bridge(Server):
         self.serverThread.join()
 
     def shutdown(self):
+        # remove bridge address symbolic links
+        os.remove(self.addrFileName)
+        os.remove(self.portFileName)
+        # close server
         super().close()
         sys.exit(0)
 
@@ -55,13 +60,35 @@ class Bridge(Server):
                 print("error writing bridge port")
                 self.shutdown()
 
+def bridgeLanExists(bridge: Bridge, lanName):
+    try:
+        with open(bridge.addrFileName, 'r') as addr:
+            bridgeHost = addr.readline()
+            if bridgeHost == "":
+                return False
+            else:
+                return True
+    except FileNotFoundError:
+        return False
 
 def main():
     """
     Entry point
     """
+
+    # check correct usage
+    if len(sys.argv) != 3:
+        print("usage: python3 bridge.py lan-name num-ports")
+        sys.exit(1)
     lanName = sys.argv[1]
-    bridge = Bridge('', 0, lanName)
+    numPorts = sys.argv[2]
+
+    bridge = Bridge('', 0, lanName, numPorts)
+
+    # validate lanName
+    if bridgeLanExists(bridge, lanName):
+        print("bridge with lan name", lanName, "already exists, provide another lan name")
+        sys.exit(1)
 
     def sigHandler(sig, frame):
         """

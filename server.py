@@ -15,10 +15,12 @@ class Server:
     Server
     """
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, numPorts):
         self.servSock = None
         self.HOST = host
         self.PORT = port
+        self.numPorts = numPorts
+        self.numClients = 0
         self.threads = []
         self.clientSocks = []
         self.exitFlag = False
@@ -64,11 +66,23 @@ class Server:
         """
         # accept()
         clientSock, clientAddr = self.servSock.accept()
-        print("new connection: ", clientSock)
+        print("new connection: ", clientSock.getpeername())
         self.clientSocks.append(clientSock)
-        clientReadThread = threading.Thread(target=self.readConnection, args=(clientSock,))
-        self.threads.append(clientReadThread)
-        clientReadThread.start()
+        # validate connection
+        if int(self.numClients) == int(self.numPorts):
+            # limit reached
+            print("server limit already reached - rejecting connection")
+            print("closing client socket",  clientSock.getpeername())
+            self.clientSocks.remove(clientSock)
+            clientSock.shutdown(socket.SHUT_RDWR)
+            clientSock.close()
+            return
+        else:
+            self.numClients = self.numClients + 1
+            clientReadThread = threading.Thread(target=self.readConnection, args=(clientSock,))
+            self.threads.append(clientReadThread)
+            clientReadThread.start()
+            return
 
     def readConnection(self, cliSock):
         """
@@ -80,7 +94,8 @@ class Server:
             try: # select()
                 inputReady, outputReady, exceptReady = select.select([cliSock], [], [], SELECT_TIMEOUT)
             except select.error as e:
-                print("error on select", e)
+                if not self.exitFlag:
+                    print("error on select", e)
                 return
             for sock in inputReady:
                 if sock == cliSock:

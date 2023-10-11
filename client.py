@@ -36,7 +36,6 @@ class Client:
         run client - read from server
         :return:
         """
-        print("client ready to read server data")
         while not self.exitFlag:
             try: # select()
                 inputReady, outputReady, exceptReady = select.select([self.cliSock, sys.stdin], [], [], SELECT_TIMEOUT)
