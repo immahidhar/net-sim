@@ -76,6 +76,7 @@ class MultiStation:
         self.iFaceFileName = iFaceFileName
         self.rTableFileName = rTableFileName
         self.hostsFileName = hostsFileName
+        self.arpCache = {} # arp cache - (ip: str, mac: str)
         self.hosts = {}
         self.rTable = []
         self.stations = []
@@ -203,10 +204,11 @@ class MultiStation:
                 elif toShow.lower() == "pq":
                     pass
                 elif toShow.lower() == "hosts":
-                    print(self.hosts)
+                    for host in self.hosts:
+                        print(host + "\t: " + self.hosts[host])
                 elif toShow.lower() == "iface":
                     for station in self.stations:
-                        print(station.interface.__str__())
+                        print(station.interface)
                 elif toShow.lower() == "rtable":
                     for route in self.rTable:
                         print(route)

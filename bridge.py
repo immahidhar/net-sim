@@ -27,6 +27,7 @@ class Bridge(Server):
         self.portFileName = "." + self.lanName + '.port'
         self.threads = []
         self.serverThread = None
+        self.sLDb = {} # self learning port-mac database (mac: str, portDb: PortDb)
 
     def start(self):
         """
