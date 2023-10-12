@@ -73,11 +73,15 @@ class MultiStation:
         self.iFaceFileName = iFace
         self.rTableFileName = rTable
         self.hostsFileName = hosts
+        self.hosts = {}
+        self.routes = {}
         self.stations = []
         self.stationThreads = []
-        self.loadStation()
+        self.loadInterface()
+        self.loadHosts()
+        self.loadRoutingTable()
 
-    def loadStation(self):
+    def loadInterface(self):
         """
         load multi station by reading interface file
         """
@@ -99,6 +103,50 @@ class MultiStation:
         except FileNotFoundError as e:
             print(e)
             sys.exit(1)
+        print("interface loaded")
+
+    def loadHosts(self):
+        """
+        load hostname from hostname file
+        """
+        try:
+            with open(self.hostsFileName, 'r') as hostsFile:
+                try:
+                    hosts = hostsFile.readlines()
+                    for host in hosts:
+                        host = host.strip().split()
+                        if len(host) < 2:
+                            break
+                        self.hosts[host[0]] = host[1]
+                except:
+                    print("error reading hosts file")
+                    sys.exit(1)
+        except FileNotFoundError as e:
+            print(e)
+            sys.exit(1)
+        print("hosts loaded")
+
+    def loadRoutingTable(self):
+        """
+        load routing table from rTable file
+        """
+        try:
+            with open(self.rTableFileName, 'r') as rTableFile:
+                try:
+                    routes = rTableFile.readlines()
+                    for route in routes:
+                        route = route.strip().split()
+                        if len(route) < 2:
+                            break
+                        self.routes[route[0]] = [route[1], route[2], route[3]]
+                except:
+                    print("error reading hosts file")
+                    sys.exit(1)
+        except FileNotFoundError as e:
+            print(e)
+            sys.exit(1)
+        print("routing table loaded")
+        print(self.routes)
 
     def start(self):
         """
