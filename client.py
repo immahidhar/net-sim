@@ -54,10 +54,6 @@ class Client:
                         return
                     else:
                         self.processData(self.cliSock, data)
-                elif sock == sys.stdin:
-                    # user input
-                    data = sys.stdin.readline()
-                    self.send(data)
                 else:
                     print("Huh?")
                     pass

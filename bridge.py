@@ -1,13 +1,16 @@
 # Names: Sai Jyothi Attuluri, Sai Nikhil Gummadavelli
-import os
+
 # Bridge
 
+import os
+import sys
+import select
 import signal
 import socket
-import sys
 import threading
 
 from server import Server
+from util import SELECT_TIMEOUT
 
 
 class Bridge(Server):
@@ -16,6 +19,7 @@ class Bridge(Server):
     """
 
     def __init__(self, host, port, lanName, numPorts):
+        self.exitFlag = False
         super().__init__(host, port, numPorts)
         self.lanName = lanName
         self.numPorts = numPorts
@@ -37,8 +41,42 @@ class Bridge(Server):
         self.serverThread.start()
         self.serverThread.join()
 
+    def serveUser(self):
+        """
+        read user input and execute commands
+        """
+        while not self.exitFlag:
+            try: # select()
+                inputReady, outputReady, exceptReady = select.select([sys.stdin], [], [], SELECT_TIMEOUT)
+            except select.error as e:
+                if not self.exitFlag:
+                    print("error on select", e)
+                return
+            for sock in inputReady:
+                if sock == sys.stdin:
+                    # user input
+                    uIn = sys.stdin.readline().strip()
+                    self.processUserCommand(uIn)
+                else:
+                    print("Huh?")
+                    pass
+
+    def processUserCommand(self, uIn: str):
+        """
+        process user command for the station
+        """
+        if uIn.lower() == "quit":
+            print("quitting - station shutting down!")
+            self.shutdown()
+        elif uIn.lower() == "show sl":
+            pass
+        else:
+            print("unknown command")
+            print("usage:-show sl\n\tquit")
+
     def shutdown(self):
         # remove bridge address symbolic links
+        self.exitFlag = True
         os.remove(self.addrFileName)
         os.remove(self.portFileName)
         # close server
@@ -81,7 +119,7 @@ def main():
 
     # check correct usage
     if len(sys.argv) != 3:
-        print("usage: python3 bridge.py lan-name num-ports")
+        print("usage:- python3 bridge.py lan-name num-ports")
         sys.exit(1)
     lanName = sys.argv[1]
     numPorts = sys.argv[2]
@@ -103,6 +141,10 @@ def main():
     # Handle SIGINT
     signal.signal(signal.SIGINT, sigHandler)
 
+    # user input handling thread
+    userThread = threading.Thread(target=Bridge.serveUser, args=(bridge,))
+    userThread.daemon = True
+    userThread.start()
     # start bridge
     bridge.start()
 

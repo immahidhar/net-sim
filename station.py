@@ -98,7 +98,7 @@ class MultiStation:
                         if len(iface) < 2:
                             break
                         # create a station
-                        station = Station(self.stationType, iface[0], iface[1], iface[2], iface[3], iface[4])
+                        station = Station(iface[0], iface[1], iface[2], iface[3], iface[4])
                         self.stations.append(station)
                         self.numStations = self.numStations + 1
                 except:
@@ -213,14 +213,14 @@ class MultiStation:
                     print(self.routes)
                 else:
                     print("unknown show command")
-                    print("show usage - \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
+                    print("show usage :- \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
             else:
-                print("show usage - \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
+                print("show usage :- \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
         elif command.lower() == "send":
             pass
         else:
             print("unknown command")
-            print("usage - \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable\n\tsend <destination> <message>\n\tquit")
+            print("usage :- \n\tquit\n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable\n\tsend <destination> <message>")
 
     def shutdown(self, sockShutdownFlag):
         """
@@ -237,7 +237,7 @@ def main():
 
     # check correct usage
     if len(sys.argv) != 5:
-        print("usage: python3 station.py -no/-route interface routingtable hostname")
+        print("usage:- python3 station.py -no/-route interface routingtable hostname")
         sys.exit(1)
     stationType = sys.argv[1]
     iFace = sys.argv[2]

@@ -46,7 +46,7 @@ class Server:
         """
         while not self.exitFlag:
             try: # select()
-                inputReady, outputReady, exceptReady = select.select([self.servSock, sys.stdin], [], [], SELECT_TIMEOUT)
+                inputReady, outputReady, exceptReady = select.select([self.servSock], [], [], SELECT_TIMEOUT)
             except select.error as e:
                 if not self.exitFlag:
                     print("error on select", e)
@@ -55,10 +55,6 @@ class Server:
                 if sock == self.servSock:
                     # handle the server socket
                     self.acceptConnections()
-                elif sock == sys.stdin:
-                    # user input
-                    data = sys.stdin.readline()
-                    self.broadcastData(None, data, False)
                 else:
                     print("Huh?")
                     pass
