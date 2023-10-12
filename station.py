@@ -3,18 +3,21 @@
 # Station
 
 import sys
+import select
 import signal
 import threading
 
 from client import Client
+from util import SELECT_TIMEOUT
+
 
 class Station(Client):
     """
     Station
     """
 
-    def __init__(self, stationType, name, ip, snMask, mac, lanName):
-        self.stationType = stationType
+    def __init__(self, name, ip, snMask, mac, lanName):
+        self.exitFlag = False
         self.name = name
         self.ip = ip
         self.snMask = snMask
@@ -68,6 +71,7 @@ class MultiStation:
     """
 
     def __init__(self, stationType, iFace, rTable, hosts):
+        self.exitFlag = False
         self.numStations = 0
         self.stationType = stationType
         self.iFaceFileName = iFace
@@ -163,10 +167,66 @@ class MultiStation:
         for st in self.stationThreads:
             st.join()
 
+    def serveUser(self):
+        """
+        read user input and execute commands
+        """
+        while not self.exitFlag:
+            try: # select()
+                inputReady, outputReady, exceptReady = select.select([sys.stdin], [], [], SELECT_TIMEOUT)
+            except select.error as e:
+                if not self.exitFlag:
+                    print("error on select", e)
+                return
+            for sock in inputReady:
+                if sock == sys.stdin:
+                    # user input
+                    uIn = sys.stdin.readline().strip()
+                    self.processUserCommand(uIn)
+                else:
+                    print("Huh?")
+                    pass
+
+    def processUserCommand(self, uIn: str):
+        """
+        process user command for the station
+        """
+        sUIn = uIn.split()
+        command = sUIn[0]
+        if command.lower() == "quit":
+            print("quitting station shutting down!")
+            self.shutdown(True)
+            sys.exit(0)
+        elif command.lower() == "show":
+            if len(sUIn) == 2:
+                toShow = sUIn[1]
+                if toShow.lower() == "arp":
+                    pass
+                elif toShow.lower() == "pq":
+                    pass
+                elif toShow.lower() == "hosts":
+                    print(self.hosts)
+                elif toShow.lower() == "iface":
+                    for station in self.stations:
+                        print(station.name)
+                elif toShow.lower() == "rtable":
+                    print(self.routes)
+                else:
+                    print("unknown show command")
+                    print("show usage - \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
+            else:
+                print("show usage - \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
+        elif command.lower() == "send":
+            pass
+        else:
+            print("unknown command")
+            print("usage - \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable\n\tsend <destination> <message>\n\tquit")
+
     def shutdown(self, sockShutdownFlag):
         """
         shutdown multi station
         """
+        self.exitFlag = True
         for station in self.stations:
             station.shutdown(False, sockShutdownFlag)
 
@@ -194,26 +254,11 @@ def main():
     # Handle SIGINT
     signal.signal(signal.SIGINT, sigHandler)
 
+    # user input handling thread
+    userThread = threading.Thread(target=MultiStation.serveUser, args=(mStation,))
+    userThread.daemon = True
+    userThread.start()
     mStation.start()
-
-    """
-    lanName = sys.argv[1]
-    station = Station()
-
-    client = Client(station.bridgeHost, station.bridgePort)
-
-    def sigHandler(sig, frame):
-        print(" ctrl+c detected- station shutting down!")
-        client.close(True)
-        sys.exit(0)
-    # Handle SIGINT
-    signal.signal(signal.SIGINT, sigHandler)
-
-    client.connect()
-    clientThread = threading.Thread(target=client.run(), args=())
-    clientThread.start()
-    clientThread.join()
-    """
 
 if __name__ == "__main__":
     main()
