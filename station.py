@@ -8,6 +8,7 @@ import signal
 import threading
 
 from client import Client
+from struct import Interface, RoutingTable
 from util import SELECT_TIMEOUT
 
 
@@ -16,15 +17,11 @@ class Station(Client):
     Station
     """
 
-    def __init__(self, name, ip, snMask, mac, lanName):
+    def __init__(self, interface):
         self.exitFlag = False
-        self.name = name
-        self.ip = ip
-        self.snMask = snMask
-        self.mac = mac
-        self.lanName = lanName
-        self.addrFileName = "." + self.lanName + '.addr'
-        self.portFileName = "." + self.lanName + '.port'
+        self.interface: Interface = interface
+        self.addrFileName = "." + self.interface.lan + '.addr'
+        self.portFileName = "." + self.interface.lan + '.port'
         self.bridgePort = None
         self.bridgeHost = None
         self.getBridgeAddr()
@@ -45,7 +42,7 @@ class Station(Client):
                     print("error reading bridge port")
                     sys.exit(1)
         except FileNotFoundError:
-            print("no bridge with lan name", self.lanName, "found")
+            print("no bridge with lan name", self.interface.lan, "found")
             # sys.exit(1)
 
     def start(self):
@@ -80,7 +77,7 @@ class MultiStation:
         self.rTableFileName = rTableFileName
         self.hostsFileName = hostsFileName
         self.hosts = {}
-        self.routes = {}
+        self.rTable = []
         self.stations = []
         self.stationThreads = []
         self.loadInterface()
@@ -100,7 +97,7 @@ class MultiStation:
                         if len(iface) < 2:
                             break
                         # create a station
-                        station = Station(iface[0], iface[1], iface[2], iface[3], iface[4])
+                        station = Station(Interface(iface[0], iface[1], iface[2], iface[3], iface[4]))
                         # validate lan name before proceeding with station
                         if station.bridgeHost is None or station.bridgePort is None:
                             continue
@@ -145,7 +142,7 @@ class MultiStation:
                         route = route.strip().split()
                         if len(route) < 2:
                             break
-                        self.routes[route[0]] = [route[1], route[2], route[3]]
+                        self.rTable.append(RoutingTable(route[0], route[1], route[2], route[3]))
                 except:
                     print("error reading hosts file")
                     sys.exit(1)
@@ -159,7 +156,7 @@ class MultiStation:
         """
         # start stations
         for station in self.stations:
-            print("connecting to bridge lan", station.lanName)
+            print("connecting to bridge lan", station.interface.lan)
             stationThread = threading.Thread(target=Station.start, args=(station,))
             self.stationThreads.append(stationThread)
             stationThread.daemon = True
@@ -209,19 +206,29 @@ class MultiStation:
                     print(self.hosts)
                 elif toShow.lower() == "iface":
                     for station in self.stations:
-                        print(station.name)
+                        print(station.interface.__str__())
                 elif toShow.lower() == "rtable":
-                    print(self.routes)
+                    for route in self.rTable:
+                        print(route)
                 else:
                     print("unknown show command")
                     print("show usage :- \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
             else:
                 print("show usage :- \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
         elif command.lower() == "send":
-            pass
+            self.send(uIn, sUIn)
         else:
             print("unknown command")
             print("usage :- \n\tquit\n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable\n\tsend <destination> <message>")
+
+    def send(self, uIn, sUIn):
+        """
+        send command entered by user
+        """
+        # validate
+        if len(sUIn) < 2:
+            print("send usage:- send <destination> <message>")
+        # ethernet frame wrap
 
     def shutdown(self, sockShutdownFlag):
         """
