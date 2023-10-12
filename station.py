@@ -46,12 +46,14 @@ class Station(Client):
                     sys.exit(1)
         except FileNotFoundError:
             print("no bridge with lan name", self.lanName, "found")
-            sys.exit(1)
+            # sys.exit(1)
 
     def start(self):
         """
         start station
         """
+        if self.bridgeHost is None or self.bridgePort is None:
+            return
         super().connect()
         clientThread = threading.Thread(target=Client.run, args=(self,))
         clientThread.start()
@@ -70,13 +72,13 @@ class MultiStation:
     MultiStation
     """
 
-    def __init__(self, stationType, iFace, rTable, hosts):
+    def __init__(self, stationType, iFaceFileName, rTableFileName, hostsFileName):
         self.exitFlag = False
         self.numStations = 0
         self.stationType = stationType
-        self.iFaceFileName = iFace
-        self.rTableFileName = rTable
-        self.hostsFileName = hosts
+        self.iFaceFileName = iFaceFileName
+        self.rTableFileName = rTableFileName
+        self.hostsFileName = hostsFileName
         self.hosts = {}
         self.routes = {}
         self.stations = []
@@ -99,6 +101,9 @@ class MultiStation:
                             break
                         # create a station
                         station = Station(iface[0], iface[1], iface[2], iface[3], iface[4])
+                        # validate lan name before proceeding with station
+                        if station.bridgeHost is None or station.bridgePort is None:
+                            continue
                         self.stations.append(station)
                         self.numStations = self.numStations + 1
                 except:
@@ -107,7 +112,6 @@ class MultiStation:
         except FileNotFoundError as e:
             print(e)
             sys.exit(1)
-        print("interface loaded")
 
     def loadHosts(self):
         """
@@ -128,7 +132,6 @@ class MultiStation:
         except FileNotFoundError as e:
             print(e)
             sys.exit(1)
-        print("hosts loaded")
 
     def loadRoutingTable(self):
         """
@@ -149,8 +152,6 @@ class MultiStation:
         except FileNotFoundError as e:
             print(e)
             sys.exit(1)
-        print("routing table loaded")
-        print(self.routes)
 
     def start(self):
         """
@@ -158,11 +159,11 @@ class MultiStation:
         """
         # start stations
         for station in self.stations:
+            print("connecting to bridge lan", station.lanName)
             stationThread = threading.Thread(target=Station.start, args=(station,))
             self.stationThreads.append(stationThread)
             stationThread.daemon = True
             stationThread.start()
-        print("station started")
 
         for st in self.stationThreads:
             st.join()
@@ -237,7 +238,7 @@ def main():
 
     # check correct usage
     if len(sys.argv) != 5:
-        print("usage:- python3 station.py -no/-route interface routingtable hostname")
+        print("usage:- python3 station.py -no/-route interface routing-table hostname")
         sys.exit(1)
     stationType = sys.argv[1]
     iFace = sys.argv[2]

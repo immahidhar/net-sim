@@ -66,7 +66,7 @@ class Bridge(Server):
         process user command for the station
         """
         if uIn.lower() == "quit":
-            print("quitting - station shutting down!")
+            print("quitting - bridge shutting down!")
             self.shutdown()
         elif uIn.lower() == "show sl":
             pass
