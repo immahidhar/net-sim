@@ -8,7 +8,7 @@ import signal
 import threading
 
 from client import Client
-from struct import Interface, RoutingTable
+from dstruct import Interface, RoutingTable
 from util import SELECT_TIMEOUT
 
 
