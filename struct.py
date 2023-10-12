@@ -6,12 +6,12 @@ class Interface:
     """
     Interface
     """
-    def __init__(self, name, ip, snMask, mac, lan):
-        self.name: str = name
-        self.ip: str = ip
-        self.snMask: str = snMask
-        self.mac: str = mac
-        self.lan: str = lan
+    def __init__(self, name: str, ip: str, snMask: str, mac: str, lan: str):
+        self.name = name
+        self.ip = ip
+        self.snMask = snMask
+        self.mac = mac
+        self.lan = lan
 
     def __str__(self):
         return ("name: \'" + self.name + "\', ip: \'" + self.ip + "\', snMask: \'"+ self.snMask
@@ -21,11 +21,11 @@ class RoutingTable:
     """
     Routing Table
     """
-    def __init__(self, destinationSubnet, nextHop, snMask, ifaceName):
+    def __init__(self, destinationSubnet: str, nextHop: str, snMask: str, ifaceName: str):
         self.destinationSubnet = destinationSubnet
         self.nextHop = nextHop
         self.snMask = snMask
-        self.ifaceName: str = ifaceName
+        self.ifaceName = ifaceName
 
     def __str__(self):
         return ("destinationSubnet: \'" + self.destinationSubnet + "\', nextHop: \'" + self.nextHop
@@ -36,7 +36,7 @@ class Packet:
     Packet
     """
     def __int__(self):
-        self.size: int = 0 # size of the packet
+        self.size = 0 # size of the packet
 
 
 class IpPacket(Packet):

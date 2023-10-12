@@ -17,9 +17,9 @@ class Station(Client):
     Station
     """
 
-    def __init__(self, interface):
+    def __init__(self, interface: Interface):
         self.exitFlag = False
-        self.interface: Interface = interface
+        self.interface = interface
         self.addrFileName = "." + self.interface.lan + '.addr'
         self.portFileName = "." + self.interface.lan + '.port'
         self.bridgePort = None
