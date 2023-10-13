@@ -8,10 +8,11 @@ import signal
 import threading
 
 import json
+import time
 
 from client import Client
 from dstruct import Interface, RoutingTable, IpPacket, ArpPacket, EthernetPacket, Packet
-from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES
+from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES, STATION_PQ_REFRESH_PERIOD
 
 
 class Station(Client):
@@ -27,6 +28,8 @@ class Station(Client):
         self.bridgePort = None
         self.bridgeHost = None
         self.getBridgeAddr()
+        self.arpCache = {} # arp cache - (ip: str, mac: str)
+        self.pendQ = [] # pending queue
         super().__init__(self.bridgeHost, self.bridgePort)
 
     def getBridgeAddr(self):
@@ -56,7 +59,10 @@ class Station(Client):
         super().connect()
         self.validateBridgeAccept()
         clientThread = threading.Thread(target=Client.run, args=(self,))
+        pendQThread = threading.Thread(target=Station.checkOnPendingQueue, args=(self, ))
+        pendQThread.daemon = True
         clientThread.start()
+        pendQThread.start()
         clientThread.join()
 
     def validateBridgeAccept(self):
@@ -107,11 +113,58 @@ class Station(Client):
         print(cliSock.getpeername(), " : ", ethPack)
         packetType = ethPack.payload["type"]
         if packetType == ArpPacket.__name__:
-            # process ARP packet received
-            pass
+            arpPack = ethPack.payload
+            # check if this station is the destination station ip
+            if arpPack["destIp"] == self.interface.ip:
+                # check if ARP request or response
+                if arpPack["req"] is True:
+                    # send ARP response back
+                    self.sendARPResponse(cliSock, arpPack)
+                else:
+                    # update arp cache from arp src
+                    self.arpCache[arpPack["srcIp"]] = arpPack["srcMac"]
         elif packetType == IpPacket.__name__:
-            # process IP packet received
+            # TODO: process IP packet received
             pass
+
+    def sendARPResponse(self, cliSock, arpReq):
+        """
+        send ARPResponse back
+        """
+        arpReq["destMac"] = self.interface.mac
+        # create response - interchange source and destination
+        arpRes = ArpPacket(False, arpReq["destIp"], arpReq["destMac"], arpReq["srcIp"], arpReq["srcMac"])
+        ethArpPack = EthernetPacket(arpRes.destMac, self.interface.mac, "ARP", arpRes.__dict__)
+        ethArpPackDict = ethArpPack.__dict__
+        print(ethArpPackDict)
+        data = json.dumps(ethArpPackDict)
+        self.send(data)
+
+    def checkOnPendingQueue(self):
+        """
+        check if we can clear the pending queue
+        """
+        while not self.exitFlag:
+            if self.pendQ.__len__() > 0:
+                # check if we have new arp info
+                for ethPack in self.pendQ:
+                    if ethPack.dstMac == "":
+                        if self.arpCache.__contains__(ethPack.payload["destIp"]):
+                            # we have the mac now, fill it
+                            ethPack.dstMac = self.arpCache[ethPack.payload["destIp"]]
+                # check if we can send and clear any
+                for i in range(self.pendQ.__len__()):
+                    ethPack = self.pendQ.pop(0)
+                    if ethPack.dstMac != "":
+                        # TODO: send
+                        pass
+            time.sleep(STATION_PQ_REFRESH_PERIOD)
+
+    def sendPack(self):
+        """
+        TODO: send packet
+        """
+        pass
 
     def shutdown(self, exitFlag, shutdownFlag):
         """
@@ -133,8 +186,6 @@ class MultiStation:
         self.iFaceFileName = iFaceFileName
         self.rTableFileName = rTableFileName
         self.hostsFileName = hostsFileName
-        self.arpCache = {} # arp cache - (ip: str, mac: str)
-        self.pendQ = [] # pending queue
         self.hosts = {} # (iface, ip)
         self.rTable = []
         self.stations = []
@@ -258,11 +309,15 @@ class MultiStation:
             if len(sUIn) == 2:
                 toShow = sUIn[1]
                 if toShow.lower() == "arp":
-                    for arpEntry in self.arpCache:
-                        print(arpEntry + "\t: " + self.arpCache[arpEntry])
+                    for station in self.stations:
+                        print(station.interface.name + ":-")
+                        for arpEntry in station.arpCache:
+                            print("\t" + arpEntry + "\t: " + station[arpEntry])
                 elif toShow.lower() == "pq":
-                    for msg in self.pendQ:
-                        print(msg)
+                    for station in self.stations:
+                        print(station.interface.name + ":-")
+                        for msg in station.pendQ:
+                            print(msg)
                 elif toShow.lower() == "hosts":
                     for host in self.hosts:
                         print(host + "\t: " + self.hosts[host])
@@ -317,26 +372,27 @@ class MultiStation:
 
         """----------------MAC----------------"""
 
-        # check if we know the MAC address of destination - arpCache
-        for arpEntry in self.arpCache:
-            if destinationIp == arpEntry:
-                destinationMac = self.arpCache[arpEntry]
+        # TODO: figure out next hop ip address
+        nextHopIpaddress = destinationIp
+
+        # check if we know the MAC address of nextHop ip address - arpCache
+        for station in self.stations:
+            if station.arpCache.__contains__(nextHopIpaddress):
+                destinationMac = station.arpCache[nextHopIpaddress]
+
+        # wrap message - ethernetPacket and put it in queue
+        ethIpPack = EthernetPacket(destinationMac, self.stations[0].interface.mac, "IP", ipPack.__dict__)
+        self.stations[0].pendQ.append(ethIpPack)
 
         if destinationMac == "":
-            # if not, send ARP req to bridge and put it in queue
-            # wrap message - ethernetPacket
-            ethIpPack = EthernetPacket(destinationMac, self.stations[0].interface.mac, "IP", ipPack.__dict__)
-            self.pendQ.append(ethIpPack)
-            arpReq = ArpPacket(True, ipPack.srcIp, self.stations[0].interface.mac, destinationIp, "")
+            # send ARP req to bridge
+            arpReq = ArpPacket(True, ipPack.srcIp, self.stations[0].interface.mac, nextHopIpaddress, "")
             ethArpPack = EthernetPacket(destinationMac, self.stations[0].interface.mac, "ARP", arpReq.__dict__)
-            arpReqDict = ethArpPack.__dict__
-            print(arpReqDict)
-            data = json.dumps(arpReqDict)
+            ethArpPackDict = ethArpPack.__dict__
+            print(ethArpPackDict)
+            data = json.dumps(ethArpPackDict)
             for station in self.stations:
                 station.send(data)
-
-
-        # if so, wrap it and send it
 
 
     def shutdown(self, sockShutdownFlag):

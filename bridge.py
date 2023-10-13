@@ -43,7 +43,7 @@ class Bridge(Server):
         serverThread = threading.Thread(target=Server.serve, args=(self,))
         self.threads.append(serverThread)
         # self learning clean up thread
-        slThread = threading.Thread(target=Bridge.cleanUPSLDb, args=(self,))
+        slThread = threading.Thread(target=Bridge.cleanUpSLDb, args=(self,))
         slThread.daemon = True
         serverThread.start()
         slThread.start()
@@ -57,25 +57,31 @@ class Bridge(Server):
         :param dataBytes:
         :return:
         """
-        data = json.loads(str(dataBytes, 'UTF-8').strip())
+        dataStr = str(dataBytes, 'UTF-8').strip()
+        data = json.loads(dataStr)
         # must have received Ethernet packet - unpack it
         ethPack = unpack(EthernetPacket("", "", "", ""), data)
         print(cliSock.getpeername(), " : ", ethPack)
         # update self learning database
-        self.updateSLDb(ethPack, cliSock)
+        self.sLDb[ethPack.srcMac] = ClientDb(cliSock, time.time())
         packetType = ethPack.payload["type"]
         if packetType == ArpPacket.__name__:
             # process ARP packet received
-            pass
+            # check if ARP request or response
+            if ethPack.payload["req"] is True:
+                # broadcast to all clients except sender
+                self.broadcastData(cliSock, dataStr, False)
+            else:
+                # TODO: ARP response, have to forward this
+                # Get mac of destination station
+                destMac = ethPack.payload["destMac"]
+                # check Db to fetch the respective client
+                cliDb = self.sLDb[destMac]
+                # send over that client
+                self.sendData(cliDb.cliSock, dataStr)
         elif packetType == IpPacket.__name__:
-            # process IP packet received
+            # TODO: process IP packet received
             pass
-
-    def updateSLDb(self, ethPack:EthernetPacket, cliSock):
-        """
-        update self learning database of mac and port
-        """
-        self.sLDb[ethPack.srcMac] = ClientDb(cliSock, time.time())
 
     def serveUser(self):
         """
@@ -115,7 +121,7 @@ class Bridge(Server):
             print("unknown command")
             print("usage:-show sl\n\tquit")
 
-    def cleanUPSLDb(self):
+    def cleanUpSLDb(self):
         """
         clean up self learning database once in a while:
         """
