@@ -31,18 +31,16 @@ class RoutingTable:
         return ("destSubnet: \'" + self.destSubnet + "\', nextHop: \'" + self.nextHop
                 + "\', snMask: \'" + self.snMask + "\', ifaceName: \'" + self.ifaceName + "\'")
 
-class PortDb:
+class ClientDb:
     """
     self learning mac-port database for bridge
     """
-    def __init__(self, mac: str, port: int, timestamp):
-        self.mac = mac
-        self.port = port
+    def __init__(self, cliSock, timestamp):
+        self.cliSock = cliSock
         self.timestamp = timestamp
 
     def __str__(self):
-        return ("mac: \'" + self.mac + "\', port: \'" + str(self.port)
-                + "\', timestamp: \'" + self.timestamp + "\'")
+        return "cliSock: \'" + str(self.cliSock) + "\', timestamp: \'" + str(self.timestamp) + "\'"
 
 class Packet:
     """

@@ -5,8 +5,9 @@
 # constants
 SELECT_TIMEOUT = 1
 BUFFER_LEN = 1024
+BRIDGE_SL_TIMEOUT = 30 # in seconds
+BRIDGE_SL_REFRESH_PERIOD = 10 # in seconds
 CLIENT_CONNECT_RETRIES = 5
-BRIDGE_DB_TIME_LIMIT = 30000 # in milliseconds
 
 def isIp(s: str):
     """

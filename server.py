@@ -66,7 +66,7 @@ class Server:
         """
         # accept()
         clientSock, clientAddr = self.servSock.accept()
-        print("new connection: ", clientSock.getpeername())
+        print("new connection from" , clientSock.getpeername() ) #, "on" , clientSock.getsockname())
         self.clientSocks.append(clientSock)
         # validate connection
         if int(self.numClients) == int(self.numPorts):

@@ -4,6 +4,7 @@
 
 import os
 import sys
+import time
 import select
 import signal
 import socket
@@ -11,9 +12,9 @@ import threading
 
 import json
 
-from dstruct import EthernetPacket, ArpPacket, IpPacket
+from dstruct import EthernetPacket, ArpPacket, IpPacket, ClientDb
 from server import Server
-from util import SELECT_TIMEOUT, unpack
+from util import SELECT_TIMEOUT, unpack, BRIDGE_SL_TIMEOUT, BRIDGE_SL_REFRESH_PERIOD
 
 
 class Bridge(Server):
@@ -29,8 +30,7 @@ class Bridge(Server):
         self.addrFileName = "." + self.lanName + '.addr'
         self.portFileName = "." + self.lanName + '.port'
         self.threads = []
-        self.serverThread = None
-        self.sLDb = {} # self learning port-mac database (mac: str, portDb: PortDb)
+        self.sLDb = {} # self learning port-mac database (mac: str, client: ClientDB)
 
     def start(self):
         """
@@ -39,11 +39,16 @@ class Bridge(Server):
         """
         super().start()
         self.saveBridgeAddr()
-        self.serverThread = threading.Thread(target=Server.serve, args=(self,))
-        self.threads.append(self.serverThread)
+        # server Thread
+        serverThread = threading.Thread(target=Server.serve, args=(self,))
+        self.threads.append(serverThread)
+        # self learning clean up thread
+        slThread = threading.Thread(target=Bridge.cleanUPSLDb, args=(self,))
+        slThread.daemon = True
+        serverThread.start()
+        slThread.start()
         print("bridge started")
-        self.serverThread.start()
-        self.serverThread.join()
+        serverThread.join()
 
     def processData(self, cliSock, dataBytes):
         """
@@ -56,6 +61,8 @@ class Bridge(Server):
         # must have received Ethernet packet - unpack it
         ethPack = unpack(EthernetPacket("", "", "", ""), data)
         print(cliSock.getpeername(), " : ", ethPack)
+        # update self learning database
+        self.updateSLDb(ethPack, cliSock)
         packetType = ethPack.payload["type"]
         if packetType == ArpPacket.__name__:
             # process ARP packet received
@@ -64,6 +71,11 @@ class Bridge(Server):
             # process IP packet received
             pass
 
+    def updateSLDb(self, ethPack:EthernetPacket, cliSock):
+        """
+        update self learning database of mac and port
+        """
+        self.sLDb[ethPack.srcMac] = ClientDb(cliSock, time.time())
 
     def serveUser(self):
         """
@@ -93,10 +105,31 @@ class Bridge(Server):
             print("quitting - bridge shutting down!")
             self.shutdown()
         elif uIn.lower() == "show sl":
-            pass
+            if self.sLDb.__len__() == 0:
+                print("Nothing yet!")
+                return
+            print("MAC\t\t  : Station")
+            for entry in self.sLDb:
+                print(entry + " : " + self.sLDb[entry].cliSock.getpeername().__str__())
         else:
             print("unknown command")
             print("usage:-show sl\n\tquit")
+
+    def cleanUPSLDb(self):
+        """
+        clean up self learning database once in a while:
+        """
+        while not self.exitFlag:
+            rmEntries = []
+            for entry in self.sLDb:
+                client = self.sLDb[entry]
+                currTime = time.time()
+                oldTime = client.timestamp
+                if currTime - oldTime >= BRIDGE_SL_TIMEOUT:
+                    rmEntries.append(entry)
+            for entry in rmEntries:
+                self.sLDb.__delitem__(entry)
+            time.sleep(BRIDGE_SL_REFRESH_PERIOD)
 
     def shutdown(self):
         # remove bridge address symbolic links
