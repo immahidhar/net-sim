@@ -11,7 +11,7 @@ import json
 
 from client import Client
 from dstruct import Interface, RoutingTable, IpPacket, ArpPacket, EthernetPacket, Packet
-from util import SELECT_TIMEOUT, isIp
+from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES
 
 
 class Station(Client):
@@ -54,9 +54,64 @@ class Station(Client):
         if self.bridgeHost is None or self.bridgePort is None:
             return
         super().connect()
+        self.validateBridgeAccept()
         clientThread = threading.Thread(target=Client.run, args=(self,))
         clientThread.start()
         clientThread.join()
+
+    def validateBridgeAccept(self):
+        """
+        check for accept/reject response
+        """
+        for i in range(CLIENT_CONNECT_RETRIES):
+            try: # select()
+                inputReady, outputReady, exceptReady = select.select([self.cliSock], [], [], SELECT_TIMEOUT)
+            except select.error as e:
+                if not self.exitFlag:
+                    print("error on select", e)
+                return False
+            for sock in inputReady:
+                if sock == self.cliSock:
+                    data = self.cliSock.recv(BUFFER_LEN)
+                    if not data:
+                        if self.exitFlag:
+                            return False
+                        print("server closed connection",  self.server_addr)
+                        super().close(False)
+                        return False
+                    else:
+                        data = str(data, 'UTF-8').strip()
+                        if data == "accept":
+                            print("bridge " + self.interface.lan + " accepted connection")
+                            return True
+                        elif data == "reject":
+                            print("bridge " + self.interface.lan + " rejected connection")
+                            return False
+                        else:
+                            print(data)
+                else:
+                    print("Huh?")
+                    pass
+            return False
+
+    def processData(self, cliSock, dataBytes):
+        """
+        process data received
+        :param cliSock:
+        :param dataBytes:
+        :return:
+        """
+        data = json.loads(str(dataBytes, 'UTF-8').strip())
+        # must have received Ethernet packet - unpack it
+        ethPack = unpack(EthernetPacket("", "", "", ""), data)
+        print(cliSock.getpeername(), " : ", ethPack)
+        packetType = ethPack.payload["type"]
+        if packetType == ArpPacket.__name__:
+            # process ARP packet received
+            pass
+        elif packetType == IpPacket.__name__:
+            # process IP packet received
+            pass
 
     def shutdown(self, exitFlag, shutdownFlag):
         """

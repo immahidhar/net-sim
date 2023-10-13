@@ -11,7 +11,7 @@ import threading
 
 import json
 
-from dstruct import EthernetPacket
+from dstruct import EthernetPacket, ArpPacket, IpPacket
 from server import Server
 from util import SELECT_TIMEOUT, unpack
 
@@ -53,10 +53,17 @@ class Bridge(Server):
         :return:
         """
         data = json.loads(str(dataBytes, 'UTF-8').strip())
-        print(cliSock.getpeername(), " : ", data)
         # must have received Ethernet packet - unpack it
         ethPack = unpack(EthernetPacket("", "", "", ""), data)
-        print(ethPack)
+        print(cliSock.getpeername(), " : ", ethPack)
+        packetType = ethPack.payload["type"]
+        if packetType == ArpPacket.__name__:
+            # process ARP packet received
+            pass
+        elif packetType == IpPacket.__name__:
+            # process IP packet received
+            pass
+
 
     def serveUser(self):
         """
