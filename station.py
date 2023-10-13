@@ -116,13 +116,12 @@ class Station(Client):
             arpPack = ethPack.payload
             # check if this station is the destination station ip
             if arpPack["destIp"] == self.interface.ip:
+                # update arp cache from arp src
+                self.arpCache[arpPack["srcIp"]] = arpPack["srcMac"]
                 # check if ARP request or response
                 if arpPack["req"] is True:
                     # send ARP response back
                     self.sendARPResponse(cliSock, arpPack)
-                else:
-                    # update arp cache from arp src
-                    self.arpCache[arpPack["srcIp"]] = arpPack["srcMac"]
         elif packetType == IpPacket.__name__:
             # TODO: process IP packet received
             pass
@@ -156,8 +155,10 @@ class Station(Client):
                 for i in range(self.pendQ.__len__()):
                     ethPack = self.pendQ.pop(0)
                     if ethPack.dstMac != "":
-                        # TODO: send
-                        pass
+                        ethPackDict = ethPack.__dict__
+                        print(ethPackDict)
+                        data = json.dumps(ethPackDict)
+                        self.send(data)
             time.sleep(STATION_PQ_REFRESH_PERIOD)
 
     def sendPack(self):
@@ -311,8 +312,12 @@ class MultiStation:
                 if toShow.lower() == "arp":
                     for station in self.stations:
                         print(station.interface.name + ":-")
-                        for arpEntry in station.arpCache:
-                            print("\t" + arpEntry + "\t: " + station[arpEntry])
+                        if station.arpCache.__len__() == 0:
+                            print("nothing to show")
+                        else:
+                            print("IP\t\t  : MAC")
+                            for arpEntry in station.arpCache:
+                                print(arpEntry + "\t: " + station.arpCache[arpEntry])
                 elif toShow.lower() == "pq":
                     for station in self.stations:
                         print(station.interface.name + ":-")
@@ -393,7 +398,6 @@ class MultiStation:
             data = json.dumps(ethArpPackDict)
             for station in self.stations:
                 station.send(data)
-
 
     def shutdown(self, sockShutdownFlag):
         """

@@ -67,21 +67,27 @@ class Bridge(Server):
         packetType = ethPack.payload["type"]
         if packetType == ArpPacket.__name__:
             # process ARP packet received
+            arpPack = ethPack.payload
             # check if ARP request or response
-            if ethPack.payload["req"] is True:
+            if arpPack["req"] is True:
                 # broadcast to all clients except sender
                 self.broadcastData(cliSock, dataStr, False)
             else:
-                # TODO: ARP response, have to forward this
                 # Get mac of destination station
-                destMac = ethPack.payload["destMac"]
+                destMac = arpPack["destMac"]
                 # check Db to fetch the respective client
                 cliDb = self.sLDb[destMac]
                 # send over that client
                 self.sendData(cliDb.cliSock, dataStr)
         elif packetType == IpPacket.__name__:
             # TODO: process IP packet received
-            pass
+            ipPack = ethPack.payload
+            # Get mac of destination
+            destMac = ethPack.dstMac
+            # check Db to fetch the respective client
+            cliDb = self.sLDb[destMac]
+            # send over that client
+            self.sendData(cliDb.cliSock, dataStr)
 
     def serveUser(self):
         """
@@ -112,7 +118,7 @@ class Bridge(Server):
             self.shutdown()
         elif uIn.lower() == "show sl":
             if self.sLDb.__len__() == 0:
-                print("Nothing yet!")
+                print("nothing to show")
                 return
             print("MAC\t\t  : Station")
             for entry in self.sLDb:
