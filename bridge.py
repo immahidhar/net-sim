@@ -9,8 +9,11 @@ import signal
 import socket
 import threading
 
+import json
+
+from dstruct import EthernetPacket
 from server import Server
-from util import SELECT_TIMEOUT
+from util import SELECT_TIMEOUT, unpack
 
 
 class Bridge(Server):
@@ -41,6 +44,19 @@ class Bridge(Server):
         print("bridge started")
         self.serverThread.start()
         self.serverThread.join()
+
+    def processData(self, cliSock, dataBytes):
+        """
+        process data received
+        :param cliSock:
+        :param dataBytes:
+        :return:
+        """
+        data = json.loads(str(dataBytes, 'UTF-8').strip())
+        print(cliSock.getpeername(), " : ", data)
+        # must have received Ethernet packet - unpack it
+        ethPack = unpack(EthernetPacket("", "", "", ""), data)
+        print(ethPack)
 
     def serveUser(self):
         """

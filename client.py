@@ -71,7 +71,7 @@ class Client:
         """
         send data to server
         """
-        self.cliSock.send(bytes(data, 'utf-8'))
+        self.cliSock.send(bytes(data, "UTF-8"))
 
 
     def close(self, shutdownFlag):

@@ -7,9 +7,11 @@ import select
 import signal
 import threading
 
+import json
+
 from client import Client
-from dstruct import Interface, RoutingTable
-from util import SELECT_TIMEOUT
+from dstruct import Interface, RoutingTable, IpPacket, ArpPacket, EthernetPacket, Packet
+from util import SELECT_TIMEOUT, isIp
 
 
 class Station(Client):
@@ -77,7 +79,8 @@ class MultiStation:
         self.rTableFileName = rTableFileName
         self.hostsFileName = hostsFileName
         self.arpCache = {} # arp cache - (ip: str, mac: str)
-        self.hosts = {}
+        self.pendQ = [] # pending queue
+        self.hosts = {} # (iface, ip)
         self.rTable = []
         self.stations = []
         self.stationThreads = []
@@ -200,9 +203,11 @@ class MultiStation:
             if len(sUIn) == 2:
                 toShow = sUIn[1]
                 if toShow.lower() == "arp":
-                    pass
+                    for arpEntry in self.arpCache:
+                        print(arpEntry + "\t: " + self.arpCache[arpEntry])
                 elif toShow.lower() == "pq":
-                    pass
+                    for msg in self.pendQ:
+                        print(msg)
                 elif toShow.lower() == "hosts":
                     for host in self.hosts:
                         print(host + "\t: " + self.hosts[host])
@@ -225,12 +230,59 @@ class MultiStation:
 
     def send(self, uIn, sUIn):
         """
-        send command entered by user
+        send message entered by user to its destination
         """
         # validate
-        if len(sUIn) < 2:
+        if len(sUIn) < 3:
             print("send usage:- send <destination> <message>")
-        # ethernet frame wrap
+            return
+
+        """----------------IP----------------"""
+
+        # get destination - whom should the message be sent
+        destination = sUIn[1]
+        destinationIp = ""
+        destinationMac = ""
+        message = uIn[len(destination)+6:len(uIn)]
+        pack = Packet(len(message), message)
+
+        # check destination given is interface or ip
+        if not isIp(destination):
+            # if interface get ip from hosts - DNS Lookup
+            for host in self.hosts:
+                if destination.lower() == host.lower():
+                    destinationIp = self.hosts[host]
+            if destinationIp == "":
+                # if we didn't find ip, give up
+                print("DNS lookup failed - couldn't find ip address of " + destination + " in hostnames")
+                return
+
+        # wrap message - ipPacket
+        ipPack = IpPacket(destinationIp, self.stations[0].interface.ip, 0, 0, pack.__dict__)
+
+        """----------------MAC----------------"""
+
+        # check if we know the MAC address of destination - arpCache
+        for arpEntry in self.arpCache:
+            if destinationIp == arpEntry:
+                destinationMac = self.arpCache[arpEntry]
+
+        if destinationMac == "":
+            # if not, send ARP req to bridge and put it in queue
+            # wrap message - ethernetPacket
+            ethIpPack = EthernetPacket(destinationMac, self.stations[0].interface.mac, "IP", ipPack.__dict__)
+            self.pendQ.append(ethIpPack)
+            arpReq = ArpPacket(True, ipPack.srcIp, self.stations[0].interface.mac, destinationIp, "")
+            ethArpPack = EthernetPacket(destinationMac, self.stations[0].interface.mac, "ARP", arpReq.__dict__)
+            arpReqDict = ethArpPack.__dict__
+            print(arpReqDict)
+            data = json.dumps(arpReqDict)
+            for station in self.stations:
+                station.send(data)
+
+
+        # if so, wrap it and send it
+
 
     def shutdown(self, sockShutdownFlag):
         """

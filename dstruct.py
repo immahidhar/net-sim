@@ -2,8 +2,6 @@
 
 # dstruct - Data structures
 
-from enum import Enum
-
 class Interface:
     """
     Interface
@@ -62,6 +60,7 @@ class ArpPacket:
     ARP Packet
     """
     def __init__(self, req: bool, srcIp: str, srcMac: str, destIp: str, destMac: str):
+        self.type = ArpPacket.__name__
         self.req =  req # request = True, response = False
         self.srcIp = srcIp
         self.srcMac = srcMac
@@ -69,31 +68,41 @@ class ArpPacket:
         self.destMac = destMac
 
     def __str__(self):
-        return ("req: \'" + str(self.req) + "\', srcIp: \'" + self.srcIp + "\', srcMac: \'"
-                + self.srcMac + "\', destIp: \'" + self.destIp + "\', destMac: \'" + self.destMac + "\'")
+        return ("ArpPacket(req: \'" + str(self.req) + "\', srcIp: \'" + self.srcIp + "\', srcMac: \'"
+                + self.srcMac + "\', destIp: \'" + self.destIp + "\', destMac: \'" + self.destMac + "\')")
 
-class IpPacket(Packet):
+    def __repr__(self):
+        return ("ArpPacket(req: \'" + str(self.req) + "\', srcIp: \'" + self.srcIp + "\', srcMac: \'"
+                + self.srcMac + "\', destIp: \'" + self.destIp + "\', destMac: \'" + self.destMac + "\')")
+
+class IpPacket:
     """
     IpPacket
     """
+    def __init__(self, destIp: str, srcIp: str, prot: int, seq: int, payload):
+        self.type = IpPacket.__name__
+        self.destIp = destIp
+        self.srcIp = srcIp
+        self.prot = prot
+        self.seq = seq
+        self.payload = payload
+
+    def __str__(self):
+        return ("IpPacket(destIp: \'" + str(self.destIp) + "\', srcIp: \'" + self.srcIp + "\', prot: \'"
+                + str(self.prot) + "\', seq: \'" + str(self.seq) + "\', payload: \'" + self.payload.__str__() + "\')")
 
 class EthernetPacket:
     """
     Ethernet Packet
     """
-    class EthernetPayloadType(Enum):
-        """
-        Packet type
-        """
-        ARP = 1
-        IP = 2
 
-    def __init__(self, dstMac: str, srcMac: str, pType: EthernetPayloadType, payload: Packet):
+    def __init__(self, dstMac: str, srcMac: str, pType: str, payload):
+        self.type = EthernetPacket.__name__
         self.dstMac = dstMac
         self.srcMac = srcMac
         self.pType = pType
         self.payload = payload
 
     def __str__(self):
-        return ("dstMac: \'" + self.dstMac + "\', srcMac: \'" + self.srcMac
-                + "\', pType: \'" + self.pType.__str__() + "\'" + "\', payload: \'" + self.payload.__str__() + "\'")
+        return ("EthernetPacket(dstMac: \'" + self.dstMac + "\', srcMac: \'" + self.srcMac
+                + "\', pType: \'" + self.pType.__str__() + "\'" + "\', payload: \'" + self.payload.__str__() + "\')")
