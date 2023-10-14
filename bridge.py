@@ -15,7 +15,7 @@ import json
 from dstruct import EthernetPacket, ArpPacket, IpPacket, ClientDb
 from server import Server
 from util import SELECT_TIMEOUT, unpack, BRIDGE_SL_TIMEOUT, BRIDGE_SL_REFRESH_PERIOD, LOCAL_BROADCAST_MAC, \
-    PACKET_END_CHAR
+    PACKET_END_CHAR, DEBUG
 
 
 class Bridge(Server):
@@ -63,11 +63,12 @@ class Bridge(Server):
         for dataStr in dataStrList:
             if dataStr == "":
                 return
-            print(cliSock.getpeername(), " : ", dataStr)
+            if DEBUG:
+                print(cliSock.getpeername(), " : ", dataStr)
             data = json.loads(dataStr)
             # must have received Ethernet packet - unpack it
             ethPack = unpack(EthernetPacket("", "", "", ""), data)
-            print(cliSock.getpeername(), " : ", ethPack)
+            # print(cliSock.getpeername(), " : ", ethPack)
             # update self learning database
             self.sLDb[ethPack.srcMac] = ClientDb(cliSock, time.time())
             packetType = ethPack.payload["type"]
@@ -102,7 +103,8 @@ class Bridge(Server):
                 if self.sLDb.__contains__(destMac):
                     cliDb = self.sLDb[destMac]
                     # send over that client
-                    print("passing to", cliDb.cliSock)
+                    if DEBUG:
+                        print("passing to", cliDb.cliSock)
                     self.sendData(cliDb.cliSock, dataStr)
                 else:
                     print("error: couldn't send packet, unknown mac", destMac)
@@ -173,6 +175,7 @@ class Bridge(Server):
     def saveBridgeAddr(self):
         with open(self.addrFileName, 'w') as addr:
             try:
+                # TODO: change here
                 # addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][0])
                 addr.write((self.servSock.getsockname())[0])
             except:

@@ -7,6 +7,7 @@ import json
 from dstruct import EthernetPacket, ArpPacket
 
 # constants
+DEBUG = False
 SELECT_TIMEOUT = 1
 BUFFER_LEN = 1024
 BRIDGE_SL_TIMEOUT = 600 # in seconds
@@ -33,7 +34,8 @@ def sendArpReq(ipPack, stationChosen, nextHopIpaddress):
     arpReq = ArpPacket(True, stationChosen.interface.ip, stationChosen.interface.mac, nextHopIpaddress, "")
     ethArpPack = EthernetPacket("", stationChosen.interface.mac, "ARP", arpReq.__dict__)
     ethArpPackDict = ethArpPack.__dict__
-    print(ethArpPackDict)
+    if DEBUG:
+        print(ethArpPackDict)
     data = json.dumps(ethArpPackDict)
     stationChosen.send(data)
 
@@ -105,7 +107,8 @@ def getNextRoute(rTable, dstIp):
         if total >= biggestTotal:
             biggestTotal = total
     finalRoute = routeMap[biggestTotal]
-    print(finalRoute)
+    if DEBUG:
+        print(finalRoute)
     if finalRoute is not None:
         return finalRoute
     else:

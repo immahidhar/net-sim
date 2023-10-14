@@ -2,7 +2,6 @@
 
 # Server
 
-import sys
 import socket
 import select
 import threading
@@ -34,6 +33,7 @@ class Server:
         self.servSock.bind((self.HOST, self.PORT))
         self.servSock.listen()
         print("server started: name = \"", socket.gethostname(), "\"", end =" ")
+        # TODO: change here
         # print("ip = \"", socket.gethostbyname_ex(socket.gethostname())[-1][0], "\"", end =" ")
         print("ip = \"", (self.servSock.getsockname())[0], "\"", end=" ")
         print("port = \"", self.servSock.getsockname()[1], "\"")

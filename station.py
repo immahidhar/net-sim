@@ -13,7 +13,7 @@ import time
 from client import Client
 from dstruct import Interface, Route, IpPacket, ArpPacket, EthernetPacket, Packet
 from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES, STATION_PQ_REFRESH_PERIOD, \
-    getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR
+    getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR, DEBUG
 
 
 class Station(Client):
@@ -117,11 +117,12 @@ class Station(Client):
         for dataStr in dataStrList:
             if dataStr == "":
                 return
-            print(cliSock.getpeername(), " : ", dataStr)
+            if DEBUG:
+                print(cliSock.getpeername(), " : ", dataStr)
             data = json.loads(dataStr) #.strip())
             # must have received Ethernet packet - unpack it
             ethPack = unpack(EthernetPacket("", "", "", ""), data)
-            print(cliSock.getpeername(), " : ", ethPack)
+            # print(cliSock.getpeername(), " : ", ethPack)
             packetType = ethPack.payload["type"]
             if packetType == ArpPacket.__name__:
                 arpPack = ethPack.payload
@@ -141,7 +142,7 @@ class Station(Client):
                     # client
                     # check if this is the destination
                     if ipPack["destIp"] == self.interface.ip:
-                        # get name of source ip
+                        # get name of source ip and print it
                         srcIp = ipPack["srcIp"]
                         srcHostName = srcIp
                         for entry in self.hosts:
@@ -167,7 +168,8 @@ class Station(Client):
         arpRes = ArpPacket(False, arpReq["destIp"], arpReq["destMac"], arpReq["srcIp"], arpReq["srcMac"])
         ethArpPack = EthernetPacket(arpRes.destMac, self.interface.mac, "ARP", arpRes.__dict__)
         ethArpPackDict = ethArpPack.__dict__
-        print(ethArpPackDict)
+        if DEBUG:
+            print(ethArpPackDict)
         data = json.dumps(ethArpPackDict)
         self.send(data)
 
@@ -195,7 +197,8 @@ class Station(Client):
                 for i in range(self.pendQ.__len__()):
                     if self.pendQ.__getitem__(0).dstMac != "":
                         ethPack = self.pendQ.pop(0)
-                        print(ethPack)
+                        if DEBUG:
+                            print(ethPack)
                         ethPackDict = ethPack.__dict__
                         data = json.dumps(ethPackDict)
                         self.send(data)
@@ -374,9 +377,9 @@ class MultiStation:
                         if station.arpCache.__len__() == 0:
                             print("nothing to show")
                         else:
-                            print("IP\t\t  : MAC")
+                            print("\tIP\t\t: MAC")
                             for arpEntry in station.arpCache:
-                                print(arpEntry + "\t: " + station.arpCache[arpEntry])
+                                print("\t" + arpEntry + "\t: " + station.arpCache[arpEntry])
                 elif toShow.lower() == "pq":
                     for station in self.stations:
                         print(station.interface.name + ":-")
