@@ -9,6 +9,7 @@ BRIDGE_SL_TIMEOUT = 30 # in seconds
 BRIDGE_SL_REFRESH_PERIOD = 10 # in seconds
 STATION_PQ_REFRESH_PERIOD = 10 # in seconds
 CLIENT_CONNECT_RETRIES = 5
+LOCAL_BROADCAST_MAC = "ff:ff:ff:ff:ff:ff"
 
 def isIp(s: str):
     """

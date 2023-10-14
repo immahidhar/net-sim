@@ -14,7 +14,7 @@ import json
 
 from dstruct import EthernetPacket, ArpPacket, IpPacket, ClientDb
 from server import Server
-from util import SELECT_TIMEOUT, unpack, BRIDGE_SL_TIMEOUT, BRIDGE_SL_REFRESH_PERIOD
+from util import SELECT_TIMEOUT, unpack, BRIDGE_SL_TIMEOUT, BRIDGE_SL_REFRESH_PERIOD, LOCAL_BROADCAST_MAC
 
 
 class Bridge(Server):
@@ -76,18 +76,29 @@ class Bridge(Server):
                 # Get mac of destination station
                 destMac = arpPack["destMac"]
                 # check Db to fetch the respective client
-                cliDb = self.sLDb[destMac]
-                # send over that client
-                self.sendData(cliDb.cliSock, dataStr)
+                if self.sLDb.__contains__(destMac):
+                    cliDb = self.sLDb[destMac]
+                    # send over that client
+                    self.sendData(cliDb.cliSock, dataStr)
+                else:
+                    print("error: couldn't send packet, unknown mac", destMac)
         elif packetType == IpPacket.__name__:
-            # TODO: process IP packet received
+            # process IP packet received
             ipPack = ethPack.payload
             # Get mac of destination
             destMac = ethPack.dstMac
+            # check if broadcast mac
+            if destMac == LOCAL_BROADCAST_MAC:
+                # broadcast to all clients except sender
+                self.broadcastData(cliSock, dataStr, False)
+                return
             # check Db to fetch the respective client
-            cliDb = self.sLDb[destMac]
-            # send over that client
-            self.sendData(cliDb.cliSock, dataStr)
+            if self.sLDb.__contains__(destMac):
+                cliDb = self.sLDb[destMac]
+                # send over that client
+                self.sendData(cliDb.cliSock, dataStr)
+            else:
+                print("error: couldn't send packet, unknown mac", destMac)
 
     def serveUser(self):
         """

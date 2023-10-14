@@ -17,7 +17,7 @@ class Interface:
         return ("name: \'" + self.name + "\', ip: \'" + self.ip + "\', snMask: \'"+ self.snMask
                 + "\', mac: \'" + self.mac + "\', lan: \'"+ self.lan+ "\'")
 
-class RoutingTable:
+class Route:
     """
     Routing Table
     """

@@ -11,8 +11,9 @@ import json
 import time
 
 from client import Client
-from dstruct import Interface, RoutingTable, IpPacket, ArpPacket, EthernetPacket, Packet
-from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES, STATION_PQ_REFRESH_PERIOD
+from dstruct import Interface, Route, IpPacket, ArpPacket, EthernetPacket, Packet
+from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES, STATION_PQ_REFRESH_PERIOD, \
+    LOCAL_BROADCAST_MAC
 
 
 class Station(Client):
@@ -20,8 +21,11 @@ class Station(Client):
     Station
     """
 
-    def __init__(self, interface: Interface):
+    def __init__(self, stationType, hosts, rTable, interface: Interface):
         self.exitFlag = False
+        self.stationType = stationType
+        self.hosts = hosts
+        self.rTable = rTable
         self.interface = interface
         self.addrFileName = "." + self.interface.lan + '.addr'
         self.portFileName = "." + self.interface.lan + '.port'
@@ -121,12 +125,29 @@ class Station(Client):
                 # check if ARP request or response
                 if arpPack["req"] is True:
                     # send ARP response back
-                    self.sendARPResponse(cliSock, arpPack)
+                    self.sendARPResponse(arpPack)
         elif packetType == IpPacket.__name__:
             # TODO: process IP packet received
-            pass
+            ipPack = ethPack.payload
+            # check if station is client or router
+            if self.stationType == "-no":
+                # client
+                # check if this is the destination
+                if ipPack["destIp"] == self.interface.ip:
+                    # get name of source ip
+                    srcIp = ipPack["srcIp"]
+                    srcHostName = srcIp
+                    for entry in self.hosts:
+                        if srcIp == self.hosts[entry]:
+                            srcHostName = entry
+                            break
+                    print(srcHostName + " >", ipPack["payload"]["payload"])
+                # else drop it
+            else:
+                # TODO: router
+                pass
 
-    def sendARPResponse(self, cliSock, arpReq):
+    def sendARPResponse(self, arpReq):
         """
         send ARPResponse back
         """
@@ -161,12 +182,6 @@ class Station(Client):
                         self.send(data)
             time.sleep(STATION_PQ_REFRESH_PERIOD)
 
-    def sendPack(self):
-        """
-        TODO: send packet
-        """
-        pass
-
     def shutdown(self, exitFlag, shutdownFlag):
         """
         Shutdown station
@@ -191,9 +206,9 @@ class MultiStation:
         self.rTable = []
         self.stations = []
         self.stationThreads = []
-        self.loadInterface()
         self.loadHosts()
         self.loadRoutingTable()
+        self.loadInterface()
 
     def loadInterface(self):
         """
@@ -208,7 +223,8 @@ class MultiStation:
                         if len(iface) < 2:
                             break
                         # create a station
-                        station = Station(Interface(iface[0], iface[1], iface[2], iface[3], iface[4]))
+                        station = Station(self.stationType, self.hosts, self.rTable,
+                                          Interface(iface[0], iface[1], iface[2], iface[3], iface[4]))
                         # validate lan name before proceeding with station
                         if station.bridgeHost is None or station.bridgePort is None:
                             continue
@@ -253,7 +269,7 @@ class MultiStation:
                         route = route.strip().split()
                         if len(route) < 2:
                             break
-                        self.rTable.append(RoutingTable(route[0], route[1], route[2], route[3]))
+                        self.rTable.append(Route(route[0], route[1], route[2], route[3]))
                 except:
                     print("error reading hosts file")
                     sys.exit(1)
@@ -324,6 +340,7 @@ class MultiStation:
                         for msg in station.pendQ:
                             print(msg)
                 elif toShow.lower() == "hosts":
+                    print("Name\t: Ip")
                     for host in self.hosts:
                         print(host + "\t: " + self.hosts[host])
                 elif toShow.lower() == "iface":
@@ -372,32 +389,86 @@ class MultiStation:
                 print("DNS lookup failed - couldn't find ip address of " + destination + " in hostnames")
                 return
 
+        # figure out next hop ip address
+        nextRoute = self.getNextRoute(destinationIp)
+        nextHopIpaddress = nextRoute.nextHop
+        nextHopInterface = nextRoute.ifaceName
+        stationChosen = None
+        for station in self.stations:
+            if nextHopInterface == station.interface.name:
+                stationChosen = station
+
         # wrap message - ipPacket
-        ipPack = IpPacket(destinationIp, self.stations[0].interface.ip, 0, 0, pack.__dict__)
+        ipPack = IpPacket(destinationIp, stationChosen.interface.ip, 0, 0, pack.__dict__)
 
         """----------------MAC----------------"""
 
-        # TODO: figure out next hop ip address
-        nextHopIpaddress = destinationIp
-
         # check if we know the MAC address of nextHop ip address - arpCache
-        for station in self.stations:
-            if station.arpCache.__contains__(nextHopIpaddress):
-                destinationMac = station.arpCache[nextHopIpaddress]
+        if nextHopIpaddress == "0.0.0.0":
+            destinationMac = LOCAL_BROADCAST_MAC
+        else:
+            for station in self.stations:
+                if station.arpCache.__contains__(nextHopIpaddress):
+                    destinationMac = station.arpCache[nextHopIpaddress]
 
         # wrap message - ethernetPacket and put it in queue
-        ethIpPack = EthernetPacket(destinationMac, self.stations[0].interface.mac, "IP", ipPack.__dict__)
-        self.stations[0].pendQ.append(ethIpPack)
+        ethIpPack = EthernetPacket(destinationMac, stationChosen.interface.mac, "IP", ipPack.__dict__)
+        stationChosen.pendQ.append(ethIpPack)
 
         if destinationMac == "":
             # send ARP req to bridge
-            arpReq = ArpPacket(True, ipPack.srcIp, self.stations[0].interface.mac, nextHopIpaddress, "")
-            ethArpPack = EthernetPacket(destinationMac, self.stations[0].interface.mac, "ARP", arpReq.__dict__)
+            arpReq = ArpPacket(True, ipPack.srcIp, stationChosen.interface.mac, nextHopIpaddress, "")
+            ethArpPack = EthernetPacket(destinationMac, stationChosen.interface.mac, "ARP", arpReq.__dict__)
             ethArpPackDict = ethArpPack.__dict__
             print(ethArpPackDict)
             data = json.dumps(ethArpPackDict)
             for station in self.stations:
                 station.send(data)
+
+    def getNextRoute(self, dstIp):
+        """
+        get next hop ip address for the destination ip address based on routing table
+        """
+        finalRoute = None
+        defaultRoute = None
+        # check rTable for destination network prefix
+        # 0.0.0.0 is default route
+        for route in self.rTable:
+            if route.destSubnet == "0.0.0.0":
+                defaultRoute = route
+        # find the closest match among others based on subnet
+        ipNums = list(map(int, dstIp.split(".")))
+        print(ipNums)
+        routeMap = {}
+        for route in self.rTable:
+            dstNetPrx = route.destSubnet
+            dstNetMsk = route.snMask
+            dstNetPrxNums = list(map(int, dstNetPrx.split(".")))
+            dstNetMskNums = list(map(int, dstNetMsk.split(".")))
+            print(ipNums, dstNetPrxNums)
+            # check same subnet first
+            ipAndVals = []
+            dstAndVals = []
+            for i in range(ipNums.__len__()):
+                ipAndVals.append(ipNums[i] & dstNetMskNums[i])
+                dstAndVals.append(dstNetPrxNums[i] & dstNetMskNums[i])
+            if ipAndVals == dstAndVals:
+                orValue = []
+                for i in range(ipNums.__len__()):
+                    orValue.append(ipNums[i] & dstNetPrxNums[i])
+                print(orValue)
+                orValueTotal = orValue[0] * 1000000000 + orValue[1] * 1000000 + orValue[2] * 1000 + orValue[3]
+                routeMap[orValueTotal] = route
+        biggestTotal = 0
+        for total in routeMap:
+            if total >= biggestTotal:
+                biggestTotal = total
+        finalRoute = routeMap[biggestTotal]
+        print(finalRoute)
+        if finalRoute is not None:
+            return finalRoute
+        else:
+            return defaultRoute
 
     def shutdown(self, sockShutdownFlag):
         """
