@@ -14,7 +14,8 @@ import json
 
 from dstruct import EthernetPacket, ArpPacket, IpPacket, ClientDb
 from server import Server
-from util import SELECT_TIMEOUT, unpack, BRIDGE_SL_TIMEOUT, BRIDGE_SL_REFRESH_PERIOD, LOCAL_BROADCAST_MAC
+from util import SELECT_TIMEOUT, unpack, BRIDGE_SL_TIMEOUT, BRIDGE_SL_REFRESH_PERIOD, LOCAL_BROADCAST_MAC, \
+    PACKET_END_CHAR
 
 
 class Bridge(Server):
@@ -57,48 +58,54 @@ class Bridge(Server):
         :param dataBytes:
         :return:
         """
-        dataStr = str(dataBytes, 'UTF-8').strip()
-        data = json.loads(dataStr)
-        # must have received Ethernet packet - unpack it
-        ethPack = unpack(EthernetPacket("", "", "", ""), data)
-        print(cliSock.getpeername(), " : ", ethPack)
-        # update self learning database
-        self.sLDb[ethPack.srcMac] = ClientDb(cliSock, time.time())
-        packetType = ethPack.payload["type"]
-        if packetType == ArpPacket.__name__:
-            # process ARP packet received
-            arpPack = ethPack.payload
-            # check if ARP request or response
-            if arpPack["req"] is True:
-                # broadcast to all clients
-                self.broadcastData(cliSock, dataStr, True)
-            else:
-                # Get mac of destination station
-                destMac = arpPack["destMac"]
+        dataStrList = str(dataBytes, 'UTF-8') #.strip()
+        dataStrList = dataStrList.split(PACKET_END_CHAR)
+        for dataStr in dataStrList:
+            if dataStr == "":
+                return
+            print(cliSock.getpeername(), " : ", dataStr)
+            data = json.loads(dataStr)
+            # must have received Ethernet packet - unpack it
+            ethPack = unpack(EthernetPacket("", "", "", ""), data)
+            print(cliSock.getpeername(), " : ", ethPack)
+            # update self learning database
+            self.sLDb[ethPack.srcMac] = ClientDb(cliSock, time.time())
+            packetType = ethPack.payload["type"]
+            if packetType == ArpPacket.__name__:
+                # process ARP packet received
+                arpPack = ethPack.payload
+                # check if ARP request or response
+                if arpPack["req"] is True:
+                    # broadcast to all clients
+                    self.broadcastData(cliSock, dataStr, False)
+                else:
+                    # Get mac of destination station
+                    destMac = arpPack["destMac"]
+                    # check Db to fetch the respective client
+                    if self.sLDb.__contains__(destMac):
+                        cliDb = self.sLDb[destMac]
+                        # send over that client
+                        self.sendData(cliDb.cliSock, dataStr)
+                    else:
+                        print("error: couldn't send packet, unknown mac", destMac)
+            elif packetType == IpPacket.__name__:
+                # process IP packet received
+                ipPack = ethPack.payload
+                # Get mac of destination
+                destMac = ethPack.dstMac
+                # check if broadcast mac
+                if destMac == LOCAL_BROADCAST_MAC:
+                    # broadcast to all clients except sender
+                    self.broadcastData(cliSock, dataStr, False)
+                    return
                 # check Db to fetch the respective client
                 if self.sLDb.__contains__(destMac):
                     cliDb = self.sLDb[destMac]
                     # send over that client
+                    print("passing to", cliDb.cliSock)
                     self.sendData(cliDb.cliSock, dataStr)
                 else:
                     print("error: couldn't send packet, unknown mac", destMac)
-        elif packetType == IpPacket.__name__:
-            # process IP packet received
-            ipPack = ethPack.payload
-            # Get mac of destination
-            destMac = ethPack.dstMac
-            # check if broadcast mac
-            if destMac == LOCAL_BROADCAST_MAC:
-                # broadcast to all clients except sender
-                self.broadcastData(cliSock, dataStr, False)
-                return
-            # check Db to fetch the respective client
-            if self.sLDb.__contains__(destMac):
-                cliDb = self.sLDb[destMac]
-                # send over that client
-                self.sendData(cliDb.cliSock, dataStr)
-            else:
-                print("error: couldn't send packet, unknown mac", destMac)
 
     def serveUser(self):
         """

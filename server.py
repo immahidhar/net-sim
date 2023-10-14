@@ -7,7 +7,7 @@ import socket
 import select
 import threading
 
-from util import BUFFER_LEN, SELECT_TIMEOUT
+from util import BUFFER_LEN, SELECT_TIMEOUT, PACKET_END_CHAR
 
 
 class Server:
@@ -139,7 +139,7 @@ class Server:
         """
         send data on the client socket
         """
-        cliSock.send(bytes(data, 'utf-8'))
+        cliSock.send(bytes(data + PACKET_END_CHAR, 'utf-8'))
 
     def broadcastData(self, cliSock, data, reFlag):
         """

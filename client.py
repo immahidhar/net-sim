@@ -6,7 +6,7 @@ import sys
 import socket
 import select
 
-from util import BUFFER_LEN, SELECT_TIMEOUT
+from util import BUFFER_LEN, SELECT_TIMEOUT, PACKET_END_CHAR
 
 
 class Client:
@@ -71,7 +71,7 @@ class Client:
         """
         send data to server
         """
-        self.cliSock.send(bytes(data, "UTF-8"))
+        self.cliSock.send(bytes(data + PACKET_END_CHAR, "UTF-8"))
 
 
     def close(self, shutdownFlag):
