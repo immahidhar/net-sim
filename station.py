@@ -405,7 +405,7 @@ class MultiStation:
 
         # check if we know the MAC address of nextHop ip address - arpCache
         if nextHopIpaddress == "0.0.0.0":
-            destinationMac = LOCAL_BROADCAST_MAC
+            nextHopIpaddress = destinationIp
         else:
             for station in self.stations:
                 if station.arpCache.__contains__(nextHopIpaddress):
