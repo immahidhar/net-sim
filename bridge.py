@@ -83,7 +83,7 @@ class Bridge(Server):
                     # Get mac of destination station
                     destMac = arpPack["destMac"]
                     # check Db to fetch the respective client
-                    if self.sLDb.__contains__(destMac):
+                    if self.sLDb.__contains__(destMac) and not self.sLDb[destMac].is_socket_closed():
                         cliDb = self.sLDb[destMac]
                         # send over that client
                         self.sendData(cliDb.cliSock, dataStr)
@@ -100,7 +100,7 @@ class Bridge(Server):
                     self.broadcastData(cliSock, dataStr, False)
                     return
                 # check Db to fetch the respective client
-                if self.sLDb.__contains__(destMac):
+                if self.sLDb.__contains__(destMac) and not self.sLDb[destMac].is_socket_closed():
                     cliDb = self.sLDb[destMac]
                     # send over that client
                     if DEBUG:
@@ -142,7 +142,9 @@ class Bridge(Server):
                 return
             print("MAC\t\t  : Station")
             for entry in self.sLDb:
-                print(entry + " : " + self.sLDb[entry].cliSock.getpeername().__str__())
+                clientDb = self.sLDb[entry]
+                if not clientDb.is_socket_closed():
+                    print(entry + " : " + clientDb.cliSock.getpeername().__str__())
         else:
             print("unknown command")
             print("usage:-show sl\n\tquit")
@@ -157,7 +159,7 @@ class Bridge(Server):
                 client = self.sLDb[entry]
                 currTime = time.time()
                 oldTime = client.timestamp
-                if currTime - oldTime >= BRIDGE_SL_TIMEOUT:
+                if currTime - oldTime >= BRIDGE_SL_TIMEOUT or client.is_socket_closed():
                     rmEntries.append(entry)
             for entry in rmEntries:
                 self.sLDb.__delitem__(entry)

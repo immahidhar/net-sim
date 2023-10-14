@@ -1,4 +1,6 @@
 # Names: Sai Jyothi Attuluri, Sai Nikhil Gummadavelli
+import socket
+
 
 # dstruct - Data structures
 
@@ -38,6 +40,24 @@ class ClientDb:
     def __init__(self, cliSock, timestamp):
         self.cliSock = cliSock
         self.timestamp = timestamp
+
+    def is_socket_closed(self) -> bool:
+        """
+        check if client socket active
+        """
+        try:
+            # this will try to read bytes without blocking and also without removing them from buffer (peek only)
+            data = self.cliSock.recv(16, socket.MSG_DONTWAIT | socket.MSG_PEEK)
+            if len(data) == 0:
+                return True
+        except BlockingIOError:
+            return False  # socket is open and reading from it would block
+        except ConnectionResetError:
+            return True  # socket was closed for some other reason
+        except Exception as e:
+            # print("unexpected exception when checking if a socket is closed")
+            return True
+        return False
 
     def __str__(self):
         return "cliSock: \'" + str(self.cliSock) + "\', timestamp: \'" + str(self.timestamp) + "\'"
