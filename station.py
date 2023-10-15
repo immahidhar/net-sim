@@ -415,8 +415,11 @@ class MultiStation:
                 elif toShow.lower() == "pq":
                     for station in self.stations:
                         print(station.interface.name + ":-")
-                        for msg in station.pendQ:
-                            print(msg)
+                        if station.pendQ.__len__() == 0:
+                            print("nothing to show")
+                        else:
+                            for msg in station.pendQ:
+                                print(msg)
                 elif toShow.lower() == "hosts":
                     print("Name\t: Ip")
                     for host in self.hosts:
