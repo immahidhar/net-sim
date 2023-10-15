@@ -78,7 +78,7 @@ class Bridge(Server):
                 # check if ARP request or response
                 if arpPack["req"] is True:
                     # broadcast to all clients
-                    self.broadcastData(cliSock, dataStr, False)
+                    self.broadcastData(cliSock, dataStr, True)
                 else:
                     # Get mac of destination station
                     destMac = arpPack["destMac"]

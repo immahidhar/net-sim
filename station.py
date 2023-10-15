@@ -62,7 +62,8 @@ class Station(Client):
         if self.bridgeHost is None or self.bridgePort is None:
             return
         super().connect()
-        self.validateBridgeAccept()
+        if not self.validateBridgeAccept():
+            return
         clientThread = threading.Thread(target=Client.run, args=(self,))
         pendQThread = threading.Thread(target=Station.checkOnPendingQueue, args=(self, ))
         pendQThread.daemon = True
@@ -83,7 +84,12 @@ class Station(Client):
                 return False
             for sock in inputReady:
                 if sock == self.cliSock:
-                    data = self.cliSock.recv(BUFFER_LEN)
+                    try:  # recv()
+                        data = self.cliSock.recv(BUFFER_LEN)
+                    except OSError as e:
+                        print("recv error ", e)
+                        super().close(False)
+                        return False
                     if not data:
                         if self.exitFlag:
                             return False

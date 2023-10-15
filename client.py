@@ -45,7 +45,12 @@ class Client:
                 return
             for sock in inputReady:
                 if sock == self.cliSock:
-                    data = self.cliSock.recv(BUFFER_LEN)
+                    try:  # recv()
+                        data = self.cliSock.recv(BUFFER_LEN)
+                    except OSError as e:
+                        print("recv error ", e)
+                        self.close(False)
+                        return
                     if not data:
                         if self.exitFlag:
                             return
