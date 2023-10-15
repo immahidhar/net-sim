@@ -15,7 +15,7 @@ import json
 from dstruct import EthernetPacket, ArpPacket, IpPacket, ClientDb
 from server import Server
 from util import SELECT_TIMEOUT, unpack, BRIDGE_SL_TIMEOUT, BRIDGE_SL_REFRESH_PERIOD, LOCAL_BROADCAST_MAC, \
-    PACKET_END_CHAR, DEBUG
+    PACKET_END_CHAR, DEBUG, is_socket_invalid
 
 
 class Bridge(Server):
@@ -83,7 +83,7 @@ class Bridge(Server):
                     # Get mac of destination station
                     destMac = arpPack["destMac"]
                     # check Db to fetch the respective client
-                    if self.sLDb.__contains__(destMac) and not self.sLDb[destMac].is_socket_closed():
+                    if self.sLDb.__contains__(destMac) and not is_socket_invalid(self.sLDb[destMac].cliSock):
                         cliDb = self.sLDb[destMac]
                         # send over that client
                         self.sendData(cliDb.cliSock, dataStr)
@@ -100,7 +100,7 @@ class Bridge(Server):
                     self.broadcastData(cliSock, dataStr, False)
                     return
                 # check Db to fetch the respective client
-                if self.sLDb.__contains__(destMac) and not self.sLDb[destMac].is_socket_closed():
+                if self.sLDb.__contains__(destMac) and not is_socket_invalid(self.sLDb[destMac].cliSock):
                     cliDb = self.sLDb[destMac]
                     # send over that client
                     if DEBUG:
@@ -143,7 +143,7 @@ class Bridge(Server):
             print("MAC\t\t  : Station")
             for entry in self.sLDb:
                 clientDb = self.sLDb[entry]
-                if not clientDb.is_socket_closed():
+                if not is_socket_invalid(clientDb.cliSock):
                     print(entry + " : " + clientDb.cliSock.getpeername().__str__())
         else:
             print("unknown command")
@@ -159,7 +159,7 @@ class Bridge(Server):
                 client = self.sLDb[entry]
                 currTime = time.time()
                 oldTime = client.timestamp
-                if currTime - oldTime >= BRIDGE_SL_TIMEOUT or client.is_socket_closed():
+                if currTime - oldTime >= BRIDGE_SL_TIMEOUT or is_socket_invalid(client.cliSock):
                     rmEntries.append(entry)
             for entry in rmEntries:
                 self.sLDb.__delitem__(entry)

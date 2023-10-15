@@ -13,7 +13,7 @@ import time
 from client import Client
 from dstruct import Interface, Route, IpPacket, ArpPacket, EthernetPacket, Packet
 from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES, STATION_PQ_REFRESH_PERIOD, \
-    getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR, DEBUG
+    getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR, DEBUG, is_socket_invalid
 
 
 class Station(Client):
@@ -335,7 +335,11 @@ class MultiStation:
                     for station in self.stations:
                         if nextHopInterface == station.interface.name:
                             stationChosen = station
-                    sendMac(nextHopIpaddress, stationChosen, ipPackObj)
+                    # TODO: validate station and socket
+                    if is_socket_invalid(stationChosen.cliSock):
+                        self.stations.remove(stationChosen)
+                    else:
+                        sendMac(nextHopIpaddress, stationChosen, ipPackObj)
                 time.sleep(STATION_PQ_REFRESH_PERIOD)
 
     def serveUser(self):
