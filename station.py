@@ -67,12 +67,12 @@ class Station(Client):
             return
         clientThread = threading.Thread(target=Client.run, args=(self,))
         pendQThread = threading.Thread(target=Station.checkOnPendingQueue, args=(self, ))
-        # arpCleanUpThread = threading.Thread(target=Station.cleanUpArpCache, args=(self, ))
-        # arpCleanUpThread.daemon = True
+        arpCleanUpThread = threading.Thread(target=Station.cleanUpArpCache, args=(self, ))
+        arpCleanUpThread.daemon = True
         pendQThread.daemon = True
         clientThread.start()
         pendQThread.start()
-        # arpCleanUpThread.start()
+        arpCleanUpThread.start()
         clientThread.join()
 
     def validateBridgeAccept(self):
