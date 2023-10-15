@@ -163,6 +163,9 @@ class Station(Client):
                         self.sendARPResponse(arpPack)
             elif packetType == IpPacket.__name__:
                 # process IP packet received
+                if ethPack.dstMac != self.interface.mac:
+                    # drop
+                    continue
                 ipPack = ethPack.payload
                 # check if station is client or router
                 if self.stationType == "-no":
