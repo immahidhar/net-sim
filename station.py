@@ -11,9 +11,10 @@ import json
 import time
 
 from client import Client
-from dstruct import Interface, Route, IpPacket, ArpPacket, EthernetPacket, Packet
+from dstruct import Interface, Route, IpPacket, ArpPacket, EthernetPacket, Packet, ArpDb
 from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES, STATION_PQ_REFRESH_PERIOD, \
-    getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR, DEBUG, is_socket_invalid
+    getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR, DEBUG, is_socket_invalid, SL_TIMEOUT, \
+    SL_REFRESH_PERIOD
 
 
 class Station(Client):
@@ -33,7 +34,7 @@ class Station(Client):
         self.bridgePort = None
         self.bridgeHost = None
         self.getBridgeAddr()
-        self.arpCache = {} # arp cache - (ip: str, mac: str)
+        self.arpCache = {} # arp cache - (ip: str, arpDb: ArpDb)
         self.pendQ = [] # pending queue
         super().__init__(self.bridgeHost, self.bridgePort)
 
@@ -66,9 +67,12 @@ class Station(Client):
             return
         clientThread = threading.Thread(target=Client.run, args=(self,))
         pendQThread = threading.Thread(target=Station.checkOnPendingQueue, args=(self, ))
+        arpCleanUpThread = threading.Thread(target=Station.cleanUpArpCache, args=(self, ))
+        arpCleanUpThread.daemon = True
         pendQThread.daemon = True
         clientThread.start()
         pendQThread.start()
+        arpCleanUpThread.start()
         clientThread.join()
 
     def validateBridgeAccept(self):
@@ -111,6 +115,22 @@ class Station(Client):
                     pass
             return False
 
+    def cleanUpArpCache(self):
+        """
+        clean up Arp cache once in a while
+        """
+        while not self.exitFlag:
+            rmEntries = []
+            for entry in self.arpCache:
+                arpDb = self.arpCache[entry]
+                currTime = time.time()
+                oldTime = arpDb.timestamp
+                if currTime - oldTime >= SL_TIMEOUT:
+                    rmEntries.append(entry)
+            for entry in rmEntries:
+                self.arpCache.__delitem__(entry)
+            time.sleep(SL_REFRESH_PERIOD)
+
     def processData(self, cliSock, dataBytes):
         """
         process data received
@@ -135,7 +155,8 @@ class Station(Client):
                 # check if this station is the destination station ip
                 if arpPack["destIp"] == self.interface.ip:
                     # update arp cache from arp src
-                    self.arpCache[arpPack["srcIp"]] = arpPack["srcMac"]
+                    arpDb = ArpDb(arpPack["srcMac"], time.time())
+                    self.arpCache[arpPack["srcIp"]] = arpDb
                     # check if ARP request or response
                     if arpPack["req"] is True:
                         # send ARP response back
@@ -194,7 +215,8 @@ class Station(Client):
                     if ethPack.dstMac == "":
                         if self.arpCache.__contains__(nextHopIpaddress):
                             # we have the mac now, fill it
-                            ethPack.dstMac = self.arpCache[nextHopIpaddress]
+                            arpDb = self.arpCache[nextHopIpaddress]
+                            ethPack.dstMac = arpDb.mac
                         else:
                             # TODO: ARP
                             ipPackObj = unpack(IpPacket("", "", 0, 0, ""), ethPack.payload)
@@ -389,7 +411,7 @@ class MultiStation:
                         else:
                             print("\tIP\t\t: MAC")
                             for arpEntry in station.arpCache:
-                                print("\t" + arpEntry + "\t: " + station.arpCache[arpEntry])
+                                print("\t" + arpEntry + "\t: " + station.arpCache[arpEntry].mac)
                 elif toShow.lower() == "pq":
                     for station in self.stations:
                         print(station.interface.name + ":-")

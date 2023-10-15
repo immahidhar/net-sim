@@ -42,6 +42,17 @@ class ClientDb:
     def __str__(self):
         return "cliSock: \'" + str(self.cliSock) + "\', timestamp: \'" + str(self.timestamp) + "\'"
 
+class ArpDb:
+    """
+    Arp ip-mac database for station
+    """
+    def __init__(self, mac, timestamp):
+        self.mac = mac
+        self.timestamp = timestamp
+
+    def __str__(self):
+        return "mac: \'" + str(self.mac) + "\', timestamp: \'" + str(self.timestamp) + "\'"
+
 class Packet:
     """
     Packet

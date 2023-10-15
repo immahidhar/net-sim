@@ -11,8 +11,8 @@ from dstruct import EthernetPacket, ArpPacket
 DEBUG = False
 SELECT_TIMEOUT = 1
 BUFFER_LEN = 1024
-BRIDGE_SL_TIMEOUT = 600 # in seconds
-BRIDGE_SL_REFRESH_PERIOD = 10 # in seconds
+SL_TIMEOUT = 30 # in seconds
+SL_REFRESH_PERIOD = 10 # in seconds
 STATION_PQ_REFRESH_PERIOD = 1 # in seconds
 CLIENT_CONNECT_RETRIES = 5
 LOCAL_BROADCAST_MAC = "ff:ff:ff:ff:ff:ff"
@@ -77,7 +77,7 @@ def sendMac(nextHopIpaddress, stationChosen, ipPack):
         nextHopIpaddress = ipPack.destIp
     else:
         if stationChosen.arpCache.__contains__(nextHopIpaddress):
-            destinationMac = stationChosen.arpCache[nextHopIpaddress]
+            destinationMac = stationChosen.arpCache[nextHopIpaddress].mac
 
     # wrap message - ethernetPacket and put it in queue
     ethIpPack = EthernetPacket(destinationMac, stationChosen.interface.mac, "IP", ipPack.__dict__)

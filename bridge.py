@@ -14,7 +14,7 @@ import json
 
 from dstruct import EthernetPacket, ArpPacket, IpPacket, ClientDb
 from server import Server
-from util import SELECT_TIMEOUT, unpack, BRIDGE_SL_TIMEOUT, BRIDGE_SL_REFRESH_PERIOD, LOCAL_BROADCAST_MAC, \
+from util import SELECT_TIMEOUT, unpack, SL_TIMEOUT, SL_REFRESH_PERIOD, LOCAL_BROADCAST_MAC, \
     PACKET_END_CHAR, DEBUG, is_socket_invalid
 
 
@@ -159,11 +159,11 @@ class Bridge(Server):
                 client = self.sLDb[entry]
                 currTime = time.time()
                 oldTime = client.timestamp
-                if currTime - oldTime >= BRIDGE_SL_TIMEOUT or is_socket_invalid(client.cliSock):
+                if currTime - oldTime >= SL_TIMEOUT or is_socket_invalid(client.cliSock):
                     rmEntries.append(entry)
             for entry in rmEntries:
                 self.sLDb.__delitem__(entry)
-            time.sleep(BRIDGE_SL_REFRESH_PERIOD)
+            time.sleep(SL_REFRESH_PERIOD)
 
     def shutdown(self):
         # remove bridge address symbolic links
