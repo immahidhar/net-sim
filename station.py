@@ -208,7 +208,6 @@ class Station(Client):
             if self.pendQ.__len__() > 0:
                 # check if we have new arp info
                 for ethPack in self.pendQ:
-                    # TODO: Bug here for ARP - 0.0.0.0
                     nextHopIpaddress = getNextRoute(self.rTable, ethPack.payload["destIp"]).nextHop
                     if nextHopIpaddress == "0.0.0.0":
                         nextHopIpaddress = ethPack.payload["destIp"]
@@ -218,7 +217,6 @@ class Station(Client):
                             arpDb = self.arpCache[nextHopIpaddress]
                             ethPack.dstMac = arpDb.mac
                         else:
-                            # TODO: ARP
                             ipPackObj = unpack(IpPacket("", "", 0, 0, ""), ethPack.payload)
                             sendArpReq(ipPackObj, self, nextHopIpaddress)
                 # check if we can send and clear any
@@ -363,7 +361,6 @@ class MultiStation:
                     for station in self.stations:
                         if nextHopInterface == station.interface.name:
                             stationChosen = station
-                    # TODO: validate station and socket
                     if is_socket_invalid(stationChosen.cliSock):
                         self.stations.remove(stationChosen)
                     else:

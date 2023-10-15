@@ -31,7 +31,6 @@ def sendArpReq(ipPack, stationChosen, nextHopIpaddress):
     """
     send ARP request
     """
-    # TODO: Bug here - fix source ip address for router
     arpReq = ArpPacket(True, stationChosen.interface.ip, stationChosen.interface.mac, nextHopIpaddress, "")
     ethArpPack = EthernetPacket("", stationChosen.interface.mac, "ARP", arpReq.__dict__)
     ethArpPackDict = ethArpPack.__dict__
