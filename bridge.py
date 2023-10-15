@@ -88,7 +88,8 @@ class Bridge(Server):
                         # send over that client
                         self.sendData(cliDb.cliSock, dataStr)
                     else:
-                        print("error: couldn't send packet, unknown mac", destMac)
+                        # print("error: couldn't send packet, unknown mac", destMac)
+                        self.broadcastData(cliSock, dataStr, False)
             elif packetType == IpPacket.__name__:
                 # process IP packet received
                 ipPack = ethPack.payload
@@ -107,7 +108,8 @@ class Bridge(Server):
                         print("passing to", cliDb.cliSock)
                     self.sendData(cliDb.cliSock, dataStr)
                 else:
-                    print("error: couldn't send packet, unknown mac", destMac)
+                    # print("error: couldn't send packet, unknown mac", destMac)
+                    self.broadcastData(cliSock, dataStr, False)
 
     def serveUser(self):
         """
