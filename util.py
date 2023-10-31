@@ -8,11 +8,14 @@ import socket
 from dstruct import EthernetPacket, ArpPacket
 
 # constants
+TRACE = True
 DEBUG = False
 SELECT_TIMEOUT = 1
-BUFFER_LEN = 1024
+BUFFER_LEN = 10240
 SL_TIMEOUT = 30 # in seconds
-SL_REFRESH_PERIOD = 10 # in seconds
+SL_REFRESH_PERIOD = 1 # in seconds
+ARP_REFRESH_PERIOD = 1 # in seconds
+ARP_TIMEOUT = 30 # in seconds
 STATION_PQ_REFRESH_PERIOD = 1 # in seconds
 CLIENT_CONNECT_RETRIES = 5
 LOCAL_BROADCAST_MAC = "ff:ff:ff:ff:ff:ff"
@@ -34,8 +37,9 @@ def sendArpReq(ipPack, stationChosen, nextHopIpaddress):
     arpReq = ArpPacket(True, stationChosen.interface.ip, stationChosen.interface.mac, nextHopIpaddress, "")
     ethArpPack = EthernetPacket("", stationChosen.interface.mac, "ARP", arpReq.__dict__)
     ethArpPackDict = ethArpPack.__dict__
-    if DEBUG:
-        print(ethArpPackDict)
+    if TRACE:
+        print("sending ARP request")
+        print(ethArpPackDict, end="\n\n")
     data = json.dumps(ethArpPackDict)
     stationChosen.send(data)
 
@@ -81,10 +85,6 @@ def sendMac(nextHopIpaddress, stationChosen, ipPack):
     # wrap message - ethernetPacket and put it in queue
     ethIpPack = EthernetPacket(destinationMac, stationChosen.interface.mac, "IP", ipPack.__dict__)
     stationChosen.pendQ.append(ethIpPack)
-
-    if destinationMac == "":
-        # send ARP req to bridge
-        sendArpReq(ipPack, stationChosen, nextHopIpaddress)
 
 def getNextRoute(rTable, dstIp):
     """

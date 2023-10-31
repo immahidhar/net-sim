@@ -32,11 +32,11 @@ class Server:
         self.servSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.servSock.bind((self.HOST, self.PORT))
         self.servSock.listen()
-        print("server started: name = \"", socket.gethostname(), "\"", end =" ")
+        print("name : " + socket.gethostname() , end =", ")
         # TODO: change here
-        # print("ip = \"", socket.gethostbyname_ex(socket.gethostname())[-1][0], "\"", end =" ")
-        print("ip = \"", (self.servSock.getsockname())[0], "\"", end=" ")
-        print("port = \"", self.servSock.getsockname()[1], "\"")
+        # print("ip : " + socket.gethostbyname_ex(socket.gethostname())[-1][0] + ", ", end =" ")
+        print("ip : " + (self.servSock.getsockname())[0] , end=", ")
+        print("port : " + str(self.servSock.getsockname()[1]))
         return self.servSock
 
     def serve(self):

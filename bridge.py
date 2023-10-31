@@ -15,7 +15,7 @@ import json
 from dstruct import EthernetPacket, ArpPacket, IpPacket, ClientDb
 from server import Server
 from util import SELECT_TIMEOUT, unpack, SL_TIMEOUT, SL_REFRESH_PERIOD, LOCAL_BROADCAST_MAC, \
-    PACKET_END_CHAR, DEBUG, is_socket_invalid
+    PACKET_END_CHAR, DEBUG, is_socket_invalid, TRACE
 
 
 class Bridge(Server):
@@ -38,6 +38,7 @@ class Bridge(Server):
         Start bridge
         :return:
         """
+        print("starting bridge...")
         super().start()
         self.saveBridgeAddr()
         # server Thread
@@ -63,8 +64,9 @@ class Bridge(Server):
         for dataStr in dataStrList:
             if dataStr == "":
                 return
-            if DEBUG:
-                print(cliSock.getpeername(), " : ", dataStr)
+            if TRACE:
+                print("received data on " + str(cliSock.getpeername()))
+                print(dataStr, end="\n\n")
             data = json.loads(dataStr)
             # must have received Ethernet packet - unpack it
             ethPack = unpack(EthernetPacket("", "", "", ""), data)
@@ -139,14 +141,17 @@ class Bridge(Server):
             print("quitting - bridge shutting down!")
             self.shutdown()
         elif uIn.lower() == "show sl":
+            print("----------------------------------------------------------------")
             if self.sLDb.__len__() == 0:
-                print("nothing to show")
-                return
-            print("MAC\t\t  : Station")
-            for entry in self.sLDb:
-                clientDb = self.sLDb[entry]
-                if not is_socket_invalid(clientDb.cliSock):
-                    print(entry + " : " + clientDb.cliSock.getpeername().__str__())
+                print("empty")
+            else:
+                print("\tMAC\t\t    Port\tTTL")
+                for entry in self.sLDb:
+                    clientDb = self.sLDb[entry]
+                    if not is_socket_invalid(clientDb.cliSock):
+                        print("\t" + entry + " : " + str(clientDb.cliSock.getpeername()[1]) +
+                              "\t" + str(SL_TIMEOUT - (time.time() - clientDb.timestamp)))
+            print("----------------------------------------------------------------")
         else:
             print("unknown command")
             print("usage:-show sl\n\tquit")
