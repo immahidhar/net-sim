@@ -11,7 +11,7 @@ from dstruct import EthernetPacket, ArpPacket
 TRACE = True
 DEBUG = False
 SELECT_TIMEOUT = 1
-BUFFER_LEN = 1024
+BUFFER_LEN = 10240
 SL_TIMEOUT = 30 # in seconds
 SL_REFRESH_PERIOD = 1 # in seconds
 ARP_REFRESH_PERIOD = 1 # in seconds
