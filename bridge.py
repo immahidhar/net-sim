@@ -65,7 +65,8 @@ class Bridge(Server):
             if dataStr == "":
                 return
             if TRACE:
-                print(cliSock.getpeername(), " : ", dataStr, end="\n\n")
+                print("received data on " + str(cliSock.getpeername()))
+                print(dataStr, end="\n\n")
             data = json.loads(dataStr)
             # must have received Ethernet packet - unpack it
             ethPack = unpack(EthernetPacket("", "", "", ""), data)
@@ -144,11 +145,12 @@ class Bridge(Server):
             if self.sLDb.__len__() == 0:
                 print("empty")
             else:
-                print("\tMAC\t\t    Port")
+                print("\tMAC\t\t    Port\tTTL")
                 for entry in self.sLDb:
                     clientDb = self.sLDb[entry]
                     if not is_socket_invalid(clientDb.cliSock):
-                        print("\t" + entry + " : " + str(clientDb.cliSock.getpeername()[1]))
+                        print("\t" + entry + " : " + str(clientDb.cliSock.getpeername()[1]) +
+                              "\t" + str(SL_TIMEOUT - (time.time() - clientDb.timestamp)))
             print("----------------------------------------------------------------")
         else:
             print("unknown command")

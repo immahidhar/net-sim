@@ -13,8 +13,8 @@ import time
 from client import Client
 from dstruct import Interface, Route, IpPacket, ArpPacket, EthernetPacket, Packet, ArpDb
 from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES, STATION_PQ_REFRESH_PERIOD, \
-    getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR, DEBUG, is_socket_invalid, SL_TIMEOUT, \
-    SL_REFRESH_PERIOD, TRACE
+    getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR, DEBUG, is_socket_invalid, ARP_TIMEOUT, \
+    ARP_REFRESH_PERIOD, TRACE
 
 
 class Station(Client):
@@ -125,11 +125,11 @@ class Station(Client):
                 arpDb = self.arpCache[entry]
                 currTime = time.time()
                 oldTime = arpDb.timestamp
-                if currTime - oldTime >= SL_TIMEOUT:
+                if currTime - oldTime >= ARP_TIMEOUT:
                     rmEntries.append(entry)
             for entry in rmEntries:
                 self.arpCache.__delitem__(entry)
-            time.sleep(SL_REFRESH_PERIOD)
+            time.sleep(ARP_REFRESH_PERIOD)
 
     def processData(self, cliSock, dataBytes):
         """
@@ -144,7 +144,8 @@ class Station(Client):
             if dataStr == "":
                 return
             if TRACE:
-                print(str(cliSock.getpeername()) + " : " + dataStr, end="\n\n")
+                print("received data on " + str(cliSock.getpeername()))
+                print(dataStr, end="\n\n")
             data = json.loads(dataStr) #.strip())
             # must have received Ethernet packet - unpack it
             ethPack = unpack(EthernetPacket("", "", "", ""), data)
@@ -230,6 +231,9 @@ class Station(Client):
                         if DEBUG:
                             print(ethPack)
                         ethPackDict = ethPack.__dict__
+                        if TRACE:
+                            print("sending packet")
+                            print(str(ethPackDict), end="\n\n")
                         data = json.dumps(ethPackDict)
                         self.send(data)
             time.sleep(STATION_PQ_REFRESH_PERIOD)
@@ -416,20 +420,19 @@ class MultiStation:
                 if toShow.lower() == "arp":
                     print("----------------------------------------------------------------")
                     for station in self.stations:
-                        print("\t\t---ARP cache---")
-                        print("\t\t---" + station.interface.name + "---")
+                        print("\t\t---" + station.interface.name + " cache---")
                         if station.arpCache.__len__() == 0:
                             print("empty")
                         else:
-                            print("\tIP\t\t  MAC")
+                            print("\tIP\t\t  MAC\t\t\tTTL")
                             for arpEntry in station.arpCache:
-                                print("\t" + arpEntry + "\t: " + station.arpCache[arpEntry].mac)
+                                print("\t" + arpEntry + "\t: " + station.arpCache[arpEntry].mac +
+                                      "\t" + str(ARP_TIMEOUT - (time.time() - station.arpCache[arpEntry].timestamp)))
                     print("----------------------------------------------------------------")
                 elif toShow.lower() == "pq":
                     print("----------------------------------------------------------------")
-                    print("\t\t---pending queue---")
                     for station in self.stations:
-                        print("\t\t---" + station.interface.name + "---")
+                        print("\t\t---" + station.interface.name + " queue---")
                         if station.pendQ.__len__() == 0:
                             print("empty")
                         else:
