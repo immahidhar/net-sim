@@ -14,7 +14,7 @@ from client import Client
 from dstruct import Interface, Route, IpPacket, ArpPacket, EthernetPacket, Packet, ArpDb
 from util import SELECT_TIMEOUT, isIp, unpack, BUFFER_LEN, CLIENT_CONNECT_RETRIES, STATION_PQ_REFRESH_PERIOD, \
     getNextRoute, sendMac, sendArpReq, PACKET_END_CHAR, DEBUG, is_socket_invalid, SL_TIMEOUT, \
-    SL_REFRESH_PERIOD
+    SL_REFRESH_PERIOD, TRACE
 
 
 class Station(Client):
@@ -53,7 +53,7 @@ class Station(Client):
                     print("error reading bridge port")
                     sys.exit(1)
         except FileNotFoundError:
-            print("no bridge with lan name", self.interface.lan, "found")
+            print("\nno bridge with lan name", self.interface.lan, "found")
             # sys.exit(1)
 
     def start(self):
@@ -103,7 +103,7 @@ class Station(Client):
                     else:
                         data = str(data, 'UTF-8').strip()
                         if data == "accept" + PACKET_END_CHAR:
-                            print("bridge " + self.interface.lan + " accepted connection")
+                            print("bridge " + self.interface.lan + " accepted connection", end="\n\n")
                             return True
                         elif data == "reject" + PACKET_END_CHAR:
                             print("bridge " + self.interface.lan + " rejected connection")
@@ -143,8 +143,8 @@ class Station(Client):
         for dataStr in dataStrList:
             if dataStr == "":
                 return
-            if DEBUG:
-                print(cliSock.getpeername(), " : ", dataStr)
+            if TRACE:
+                print(str(cliSock.getpeername()) + " : " + dataStr, end="\n\n")
             data = json.loads(dataStr) #.strip())
             # must have received Ethernet packet - unpack it
             ethPack = unpack(EthernetPacket("", "", "", ""), data)
@@ -179,7 +179,7 @@ class Station(Client):
                             if srcIp == self.hosts[entry]:
                                 srcHostName = entry
                                 break
-                        print(srcHostName + " >", ipPack["payload"]["payload"])
+                        print(srcHostName + " >", ipPack["payload"]["payload"], end="\n\n")
                     # else drop it
                 else:
                     # figure out next hop ip address
@@ -198,8 +198,9 @@ class Station(Client):
         arpRes = ArpPacket(False, arpReq["destIp"], arpReq["destMac"], arpReq["srcIp"], arpReq["srcMac"])
         ethArpPack = EthernetPacket(arpRes.destMac, self.interface.mac, "ARP", arpRes.__dict__)
         ethArpPackDict = ethArpPack.__dict__
-        if DEBUG:
-            print(ethArpPackDict)
+        if TRACE:
+            print("sending ARP response back")
+            print(str(ethArpPackDict), end="\n\n")
         data = json.dumps(ethArpPackDict)
         self.send(data)
 
@@ -266,6 +267,7 @@ class MultiStation:
         """
         load multi station by reading interface file
         """
+        print("\nreading ifaces...")
         try:
             with open(self.iFaceFileName, 'r') as iFaceFile:
                 try:
@@ -275,8 +277,10 @@ class MultiStation:
                         if len(iface) < 2:
                             break
                         # create a station
+                        interface = Interface(iface[0], iface[1], iface[2], iface[3], iface[4])
+                        print(interface)
                         station = Station(self.stationType, self.hosts, self.rTable, self.forwardQueue,
-                                          Interface(iface[0], iface[1], iface[2], iface[3], iface[4]))
+                                          interface)
                         # validate lan name before proceeding with station
                         if station.bridgeHost is None or station.bridgePort is None:
                             continue
@@ -293,6 +297,7 @@ class MultiStation:
         """
         load hostname from hostname file
         """
+        print("\nreading hosts...")
         try:
             with open(self.hostsFileName, 'r') as hostsFile:
                 try:
@@ -308,11 +313,14 @@ class MultiStation:
         except FileNotFoundError as e:
             print(e)
             sys.exit(1)
+        for host in self.hosts:
+            print(host + "\t: " + self.hosts[host])
 
     def loadRoutingTable(self):
         """
         load routing table from rTable file
         """
+        print("\nreading routing table...")
         try:
             with open(self.rTableFileName, 'r') as rTableFile:
                 try:
@@ -328,6 +336,8 @@ class MultiStation:
         except FileNotFoundError as e:
             print(e)
             sys.exit(1)
+        for route in self.rTable:
+            print(route)
 
     def start(self):
         """
@@ -335,7 +345,7 @@ class MultiStation:
         """
         # start stations
         for station in self.stations:
-            print("connecting to bridge lan", station.interface.lan)
+            print("\nconnecting to bridge lan", station.interface.lan)
             stationThread = threading.Thread(target=Station.start, args=(station,))
             self.stationThreads.append(stationThread)
             stationThread.daemon = True
@@ -404,24 +414,30 @@ class MultiStation:
             if len(sUIn) == 2:
                 toShow = sUIn[1]
                 if toShow.lower() == "arp":
+                    print("----------------------------------------------------------------")
                     for station in self.stations:
-                        print(station.interface.name + ":-")
+                        print("\t\t---ARP cache---")
+                        print("\t\t---" + station.interface.name + "---")
                         if station.arpCache.__len__() == 0:
-                            print("nothing to show")
+                            print("empty")
                         else:
-                            print("\tIP\t\t: MAC")
+                            print("\tIP\t\t  MAC")
                             for arpEntry in station.arpCache:
                                 print("\t" + arpEntry + "\t: " + station.arpCache[arpEntry].mac)
+                    print("----------------------------------------------------------------")
                 elif toShow.lower() == "pq":
+                    print("----------------------------------------------------------------")
+                    print("\t\t---pending queue---")
                     for station in self.stations:
-                        print(station.interface.name + ":-")
+                        print("\t\t---" + station.interface.name + "---")
                         if station.pendQ.__len__() == 0:
-                            print("nothing to show")
+                            print("empty")
                         else:
                             for msg in station.pendQ:
                                 print(msg)
+                    print("----------------------------------------------------------------")
                 elif toShow.lower() == "hosts":
-                    print("Name\t: Ip")
+                    print("Name\t  Ip")
                     for host in self.hosts:
                         print(host + "\t: " + self.hosts[host])
                 elif toShow.lower() == "iface":
@@ -440,6 +456,7 @@ class MultiStation:
         else:
             print("unknown command")
             print("usage :- \n\tquit\n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable\n\tsend <destination> <message>")
+        print()
 
     def send(self, uIn, sUIn):
         """

@@ -8,6 +8,7 @@ import socket
 from dstruct import EthernetPacket, ArpPacket
 
 # constants
+TRACE = True
 DEBUG = False
 SELECT_TIMEOUT = 1
 BUFFER_LEN = 1024
@@ -34,8 +35,9 @@ def sendArpReq(ipPack, stationChosen, nextHopIpaddress):
     arpReq = ArpPacket(True, stationChosen.interface.ip, stationChosen.interface.mac, nextHopIpaddress, "")
     ethArpPack = EthernetPacket("", stationChosen.interface.mac, "ARP", arpReq.__dict__)
     ethArpPackDict = ethArpPack.__dict__
-    if DEBUG:
-        print(ethArpPackDict)
+    if TRACE:
+        print("sending ARP request")
+        print(ethArpPackDict, end="\n\n")
     data = json.dumps(ethArpPackDict)
     stationChosen.send(data)
 
