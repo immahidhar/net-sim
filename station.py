@@ -440,15 +440,21 @@ class MultiStation:
                                 print(msg)
                     print("----------------------------------------------------------------")
                 elif toShow.lower() == "hosts":
+                    print("----------------------------------------------------------------")
                     print("Name\t  Ip")
                     for host in self.hosts:
                         print(host + "\t: " + self.hosts[host])
+                    print("----------------------------------------------------------------")
                 elif toShow.lower() == "iface":
+                    print("----------------------------------------------------------------")
                     for station in self.stations:
                         print(station.interface)
+                    print("----------------------------------------------------------------")
                 elif toShow.lower() == "rtable":
+                    print("----------------------------------------------------------------")
                     for route in self.rTable:
                         print(route)
+                    print("----------------------------------------------------------------")
                 else:
                     print("unknown show command")
                     print("show usage :- \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
