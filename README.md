@@ -13,12 +13,12 @@ Project written in Python3 language. Hence, no need to compile any code.
 * python3 bridge.py cs3 2  
 
 ### Router
-```python3 station.py -route iface rtable hostnames```
+```python3 station.py -route iface_filepath rtable_filepath hostnames_filepath```
 * python3 station.py -route ifaces/ifaces.r1 rtables/rtable.r1 hosts  
 * python3 station.py -route ifaces/ifaces.r2 rtables/rtable.r2 hosts
 
 ### Station
-```python3 station.py -no iface rtable hosts```
+```python3 station.py -no iface_filepath rtable_filepath hostnames_filepath```
 * python3 station.py -no ifaces/ifaces.a rtables/rtable.a hosts  
 * python3 station.py -no ifaces/ifaces.b rtables/rtable.b hosts  
 * python3 station.py -no ifaces/ifaces.c rtables/rtable.c hosts  
