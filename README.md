@@ -47,3 +47,13 @@ Project written in Python3 language. Hence, no need to compile any code.
 ### Bridge
 * ```show sl```     - show the contents of self-learning table
 * ```quit```        - close the bridge
+
+## Note
+There are several constants like timeouts defined in util.py
+* BUFFER_LEN = 10240
+* SL_TIMEOUT = 30 # bridge self learning table timeout in seconds
+* SL_REFRESH_PERIOD = 1 # bridge self learning table thread refresh in seconds
+* ARP_REFRESH_PERIOD = 1 # station arp cache thread refresh in seconds
+* ARP_TIMEOUT = 30 # station arp cache table timeout in seconds
+
+Change these as needed 

@@ -185,8 +185,8 @@ class Bridge(Server):
         with open(self.addrFileName, 'w') as addr:
             try:
                 # TODO: change here
-                # addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][0])
-                addr.write((self.servSock.getsockname())[0])
+                addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][0])
+                # addr.write((self.servSock.getsockname())[0])
             except:
                 print("error writing bridge ip address")
                 self.shutdown()

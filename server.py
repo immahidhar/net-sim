@@ -34,8 +34,8 @@ class Server:
         self.servSock.listen()
         print("name : " + socket.gethostname() , end =", ")
         # TODO: change here
-        # print("ip : " + socket.gethostbyname_ex(socket.gethostname())[-1][0] + ", ", end =" ")
-        print("ip : " + (self.servSock.getsockname())[0] , end=", ")
+        print("ip : " + socket.gethostbyname_ex(socket.gethostname())[-1][0] + ", ", end =" ")
+        # print("ip : " + (self.servSock.getsockname())[0] , end=", ")
         print("port : " + str(self.servSock.getsockname()[1]))
         return self.servSock
 
