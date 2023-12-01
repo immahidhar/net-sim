@@ -1,6 +1,6 @@
 # net-sim
-Network Simulator - An internet/ethernet protocol simulator.  
-Developed by Sai Jyothi Attuluri and Sai Nikhil Gummadavelli
+Network Simulator - An internet/ethernet communication simulator.  
+Developed by ***Sai Jyothi Attuluri and Sai Nikhil Gummadavelli***
 
 Project written in Python3 language. Hence, no need to compile any code. 
 
@@ -10,7 +10,7 @@ Project written in Python3 language. Hence, no need to compile any code.
 ``` python3 bridge.py <lan-name> <num-ports>```
 * python3 bridge.py cs1 6  
 * python3 bridge.py cs2 4  
-* python3 bridge.py cs3 2  
+* python3 bridge.py cs3 3  
 
 ### Router
 ```python3 station.py -route iface_filepath rtable_filepath hostnames_filepath```
@@ -56,4 +56,4 @@ There are several constants like timeouts defined in util.py
 * ARP_REFRESH_PERIOD = 1 # station arp cache thread refresh in seconds
 * ARP_TIMEOUT = 30 # station arp cache table timeout in seconds
 
-Change these as needed 
+Change these as needed. If a ModuleNotFoundError is encountered use pip install to install that module.
