@@ -20,7 +20,6 @@ class Server:
         self.PORT = port
         self.numPorts = numPorts
         self.numClients = 0
-        self.threads = []
         self.clientSocks = []
         self.exitFlag = False
 
@@ -81,7 +80,6 @@ class Server:
         else:
             self.numClients = self.numClients + 1
             clientReadThread = threading.Thread(target=Server.readConnection, args=(self, clientSock,))
-            self.threads.append(clientReadThread)
             clientReadThread.start()
             self.sendData(clientSock, "accept")
             return

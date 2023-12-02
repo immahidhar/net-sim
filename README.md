@@ -1,6 +1,6 @@
 # net-sim
 Network Simulator - An internet/ethernet communication simulator.  
-Developed by ***Sai Jyothi Attuluri and Sai Nikhil Gummadavelli***
+Developed by ***Sai Jyothi Attuluri*** and ***Sai Nikhil Gummadavelli***
 
 Project written in Python3 language. Hence, no need to compile any code. 
 
