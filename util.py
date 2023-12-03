@@ -30,7 +30,7 @@ def isIp(s: str):
             return True
     return False
 
-def sendArpReq(ipPack, stationChosen, nextHopIpaddress):
+def sendArpReq(stationChosen, nextHopIpaddress):
     """
     send ARP request
     """
