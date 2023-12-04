@@ -74,6 +74,8 @@ class Station(Client):
         pendQThread.start()
         arpCleanUpThread.start()
         clientThread.join()
+        pendQThread.join()
+        arpCleanUpThread.join()
 
     def validateBridgeAccept(self):
         """
