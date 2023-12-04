@@ -49,6 +49,7 @@ class Bridge(Server):
         slThread.start()
         print("bridge started")
         serverThread.join()
+        slThread.join()
 
     def processData(self, cliSock, dataBytes):
         """
