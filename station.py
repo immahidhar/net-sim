@@ -357,7 +357,7 @@ class MultiStation:
             stationThread.daemon = True
             stationThread.start()
 
-        if self.numStations > 1 or self.stationType is "-route" :
+        if self.numStations > 1 or self.stationType == "-route" :
             routerThread = threading.Thread(target=MultiStation.routerForward, args=(self,))
             routerThread.daemon = True
             routerThread.start()
