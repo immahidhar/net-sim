@@ -74,6 +74,8 @@ class Station(Client):
         pendQThread.start()
         arpCleanUpThread.start()
         clientThread.join()
+        pendQThread.join()
+        arpCleanUpThread.join()
 
     def validateBridgeAccept(self):
         """
@@ -223,7 +225,7 @@ class Station(Client):
                             ethPack.dstMac = arpDb.mac
                         else:
                             ipPackObj = unpack(IpPacket("", "", 0, 0, ""), ethPack.payload)
-                            sendArpReq(ipPackObj, self, nextHopIpaddress)
+                            sendArpReq(self, nextHopIpaddress)
                 # check if we can send and clear any
                 for i in range(self.pendQ.__len__()):
                     if self.pendQ.__getitem__(0).dstMac != "":
@@ -355,7 +357,7 @@ class MultiStation:
             stationThread.daemon = True
             stationThread.start()
 
-        if self.numStations > 1:
+        if self.numStations > 1 or self.stationType == "-route" :
             routerThread = threading.Thread(target=MultiStation.routerForward, args=(self,))
             routerThread.daemon = True
             routerThread.start()
@@ -440,15 +442,21 @@ class MultiStation:
                                 print(msg)
                     print("----------------------------------------------------------------")
                 elif toShow.lower() == "hosts":
+                    print("----------------------------------------------------------------")
                     print("Name\t  Ip")
                     for host in self.hosts:
                         print(host + "\t: " + self.hosts[host])
+                    print("----------------------------------------------------------------")
                 elif toShow.lower() == "iface":
+                    print("----------------------------------------------------------------")
                     for station in self.stations:
                         print(station.interface)
+                    print("----------------------------------------------------------------")
                 elif toShow.lower() == "rtable":
+                    print("----------------------------------------------------------------")
                     for route in self.rTable:
                         print(route)
+                    print("----------------------------------------------------------------")
                 else:
                     print("unknown show command")
                     print("show usage :- \n\tshow arp\n\tshow pq\n\tshow hosts\n\tshow iface\n\tshow rtable")
@@ -508,29 +516,6 @@ class MultiStation:
         """----------------MAC----------------"""
 
         sendMac(nextHopIpaddress, stationChosen, ipPack)
-
-        """
-        # check if we know the MAC address of nextHop ip address - arpCache
-        if nextHopIpaddress == "0.0.0.0":
-            nextHopIpaddress = destinationIp
-        else:
-            for station in self.stations:
-                if station.arpCache.__contains__(nextHopIpaddress):
-                    destinationMac = station.arpCache[nextHopIpaddress]
-
-        # wrap message - ethernetPacket and put it in queue
-        ethIpPack = EthernetPacket(destinationMac, stationChosen.interface.mac, "IP", ipPack.__dict__)
-        stationChosen.pendQ.append(ethIpPack)
-
-        if destinationMac == "":
-            # send ARP req to bridge
-            arpReq = ArpPacket(True, ipPack.srcIp, stationChosen.interface.mac, nextHopIpaddress, "")
-            ethArpPack = EthernetPacket(destinationMac, stationChosen.interface.mac, "ARP", arpReq.__dict__)
-            ethArpPackDict = ethArpPack.__dict__
-            print(ethArpPackDict)
-            data = json.dumps(ethArpPackDict)
-            stationChosen.send(data)
-        """
 
     def shutdown(self, sockShutdownFlag):
         """

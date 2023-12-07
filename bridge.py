@@ -30,7 +30,6 @@ class Bridge(Server):
         self.numPorts = numPorts
         self.addrFileName = "." + self.lanName + '.addr'
         self.portFileName = "." + self.lanName + '.port'
-        self.threads = []
         self.sLDb = {} # self learning port-mac database (mac: str, client: ClientDB)
 
     def start(self):
@@ -43,7 +42,6 @@ class Bridge(Server):
         self.saveBridgeAddr()
         # server Thread
         serverThread = threading.Thread(target=Server.serve, args=(self,))
-        self.threads.append(serverThread)
         # self learning clean up thread
         slThread = threading.Thread(target=Bridge.cleanUpSLDb, args=(self,))
         slThread.daemon = True
@@ -51,6 +49,7 @@ class Bridge(Server):
         slThread.start()
         print("bridge started")
         serverThread.join()
+        slThread.join()
 
     def processData(self, cliSock, dataBytes):
         """
@@ -185,8 +184,8 @@ class Bridge(Server):
         with open(self.addrFileName, 'w') as addr:
             try:
                 # TODO: change here
-                # addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][0])
-                addr.write((self.servSock.getsockname())[0])
+                addr.write(socket.gethostbyname_ex(socket.gethostname())[-1][0])
+                # addr.write((self.servSock.getsockname())[0])
             except:
                 print("error writing bridge ip address")
                 self.shutdown()

@@ -20,7 +20,6 @@ class Server:
         self.PORT = port
         self.numPorts = numPorts
         self.numClients = 0
-        self.threads = []
         self.clientSocks = []
         self.exitFlag = False
 
@@ -34,8 +33,8 @@ class Server:
         self.servSock.listen()
         print("name : " + socket.gethostname() , end =", ")
         # TODO: change here
-        # print("ip : " + socket.gethostbyname_ex(socket.gethostname())[-1][0] + ", ", end =" ")
-        print("ip : " + (self.servSock.getsockname())[0] , end=", ")
+        print("ip : " + socket.gethostbyname_ex(socket.gethostname())[-1][0] + ", ", end =" ")
+        # print("ip : " + (self.servSock.getsockname())[0] , end=", ")
         print("port : " + str(self.servSock.getsockname()[1]))
         return self.servSock
 
@@ -81,7 +80,6 @@ class Server:
         else:
             self.numClients = self.numClients + 1
             clientReadThread = threading.Thread(target=Server.readConnection, args=(self, clientSock,))
-            self.threads.append(clientReadThread)
             clientReadThread.start()
             self.sendData(clientSock, "accept")
             return
